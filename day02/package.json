@@ -1,0 +1,29 @@
+{
+  "name": "solidity-notes-day02",
+  "version": "1.0.0",
+  "description": "Day 2 - 以太坊账户模型 + Gas 机制 + ERC20 代币",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "node": "hardhat node",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "web3",
+    "blockchain",
+    "erc20",
+    "gas"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "chai": "^4.3.10",
+    "hardhat": "^2.19.0"
+  }
+}
