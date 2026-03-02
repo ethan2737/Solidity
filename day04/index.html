@@ -1,0 +1,2371 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day04 Solidity 学习笔记 - 地址类型、合约类型与全局变量</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --bg-code: #1e2530;
+            --text-primary: #e6edf3;
+            --text-secondary: #7d8590;
+            --text-muted: #484f58;
+            --accent-blue: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #f0883e;
+            --accent-red: #f85149;
+            --accent-yellow: #d29922;
+            --border-color: #30363d;
+            --border-light: #21262d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* Progress Bar */
+        .progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--bg-tertiary);
+            z-index: 1000;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple), var(--accent-green));
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a2332 50%, var(--bg-tertiary) 100%);
+            padding: 80px 20px 60px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(88, 166, 255, 0.05) 0%, transparent 70%);
+            animation: pulse 4s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(88, 166, 255, 0.15);
+            border: 1px solid var(--accent-blue);
+            border-radius: 20px;
+            color: var(--accent-blue);
+            font-size: 14px;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+            max-width: 600px;
+            margin: 0 auto 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .meta-info {
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+            flex-wrap: wrap;
+            color: var(--text-secondary);
+            font-size: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Navigation */
+        .nav-container {
+            position: sticky;
+            top: 4px;
+            background: rgba(13, 17, 23, 0.98);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 100;
+            padding: 0 20px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 4px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tab {
+            padding: 16px 20px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        .nav-tab.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        /* Main Content */
+        main {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        section {
+            margin-bottom: 80px;
+            scroll-margin-top: 80px;
+        }
+
+        h2 {
+            font-size: 2.2rem;
+            margin-bottom: 32px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-primary);
+        }
+
+        h2 .icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 4px 20px rgba(88, 166, 255, 0.3);
+        }
+
+        h3 {
+            font-size: 1.6rem;
+            color: var(--accent-blue);
+            margin: 48px 0 24px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        h4 {
+            font-size: 1.3rem;
+            color: var(--accent-purple);
+            margin: 32px 0 16px;
+        }
+
+        p {
+            margin-bottom: 16px;
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+
+        strong {
+            color: var(--text-primary);
+        }
+
+        /* Info Cards */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin: 32px 0;
+        }
+
+        .info-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .info-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(180deg, var(--accent-blue), var(--accent-purple));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .info-card:hover {
+            border-color: var(--accent-blue);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(88, 166, 255, 0.15);
+        }
+
+        .info-card:hover::before {
+            opacity: 1;
+        }
+
+        .info-card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 16px;
+        }
+
+        .info-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.2);
+        }
+
+        .info-card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .info-card-desc {
+            color: var(--text-secondary);
+            font-size: 15px;
+            line-height: 1.7;
+        }
+
+        /* Code Blocks */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 24px 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .code-header {
+            background: var(--bg-tertiary);
+            padding: 12px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .code-lang {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .copy-btn:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            background: rgba(88, 166, 255, 0.1);
+        }
+
+        .copy-btn.copied {
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        pre {
+            padding: 24px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.8;
+            background: var(--bg-code);
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+        }
+
+        /* Syntax Highlighting */
+        .keyword { color: var(--accent-purple); font-weight: 600; }
+        .function { color: var(--accent-blue); }
+        .string { color: var(--accent-green); }
+        .comment { color: var(--text-muted); font-style: italic; }
+        .number { color: var(--accent-orange); }
+        .type { color: var(--accent-yellow); }
+        .operator { color: var(--accent-red); }
+
+        /* Tables */
+        .table-container {
+            overflow-x: auto;
+            margin: 24px 0;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-light);
+            color: var(--text-secondary);
+            vertical-align: top;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(88, 166, 255, 0.03);
+        }
+
+        /* Alert Boxes */
+        .alert-box {
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin: 24px 0;
+            position: relative;
+            padding-left: 56px;
+        }
+
+        .alert-box::before {
+            position: absolute;
+            left: 20px;
+            top: 20px;
+            font-size: 20px;
+        }
+
+        .alert-box.tip {
+            background: rgba(63, 185, 80, 0.1);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .alert-box.tip::before {
+            content: '💡';
+        }
+
+        .alert-box.warning {
+            background: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+
+        .alert-box.warning::before {
+            content: '⚠️';
+        }
+
+        .alert-box.info {
+            background: rgba(88, 166, 255, 0.1);
+            border: 1px solid rgba(88, 166, 255, 0.3);
+        }
+
+        .alert-box.info::before {
+            content: 'ℹ️';
+        }
+
+        .alert-box-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        /* Q&A Accordion */
+        .qa-container {
+            margin: 32px 0;
+        }
+
+        .qa-item {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .qa-item:hover {
+            border-color: var(--accent-purple);
+        }
+
+        .qa-item.active {
+            border-color: var(--accent-purple);
+            box-shadow: 0 4px 20px rgba(163, 113, 247, 0.15);
+        }
+
+        .qa-header {
+            padding: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            background: linear-gradient(135deg, rgba(163, 113, 247, 0.05), transparent);
+            gap: 16px;
+        }
+
+        .qa-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            background: var(--accent-purple);
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .qa-title {
+            flex: 1;
+            font-weight: 500;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .qa-toggle {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+            flex-shrink: 0;
+            color: var(--accent-purple);
+        }
+
+        .qa-item.active .qa-toggle {
+            transform: rotate(180deg);
+        }
+
+        .qa-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease, padding 0.5s ease;
+        }
+
+        .qa-item.active .qa-content {
+            max-height: 3000px;
+            padding: 0 24px 24px 72px;
+        }
+
+        /* Tabs */
+        .tabs-container {
+            margin: 32px 0;
+        }
+
+        .tabs-header {
+            display: flex;
+            gap: 8px;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .tab-btn {
+            padding: 14px 24px;
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            margin-bottom: -2px;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Code Template Cards */
+        .template-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            margin: 24px 0;
+            overflow: hidden;
+        }
+
+        .template-header {
+            padding: 20px 24px;
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1), transparent);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .template-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .template-desc {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .template-body {
+            padding: 0;
+        }
+
+        .template-body .code-block {
+            margin: 0;
+            border: none;
+            border-radius: 0;
+        }
+
+        /* Practice Grid */
+        .practice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin: 32px 0;
+        }
+
+        @media (max-width: 768px) {
+            .practice-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .practice-box {
+            border-radius: 16px;
+            padding: 28px;
+            position: relative;
+        }
+
+        .practice-box.good {
+            background: rgba(63, 185, 80, 0.08);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .practice-box.bad {
+            background: rgba(248, 81, 73, 0.08);
+            border: 1px solid rgba(248, 81, 73, 0.3);
+        }
+
+        .practice-box h4 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 20px 0;
+            font-size: 1.2rem;
+        }
+
+        .practice-box.good h4 { color: var(--accent-green); }
+        .practice-box.bad h4 { color: var(--accent-red); }
+
+        .practice-box pre {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        /* Diagram */
+        .diagram {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px;
+            margin: 32px 0;
+            text-align: center;
+        }
+
+        .diagram-title {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .diagram-content {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            white-space: pre;
+            overflow-x: auto;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+            border-top: 1px solid var(--border-color);
+            margin-top: 60px;
+        }
+
+        .back-to-top {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .back-to-top:hover {
+            border-color: var(--accent-blue);
+            color: var(--accent-blue);
+            transform: translateY(-2px);
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 16px 0;
+            padding-left: 28px;
+        }
+
+        li {
+            margin-bottom: 10px;
+            color: var(--text-secondary);
+        }
+
+        /* Inline Code */
+        code {
+            background: rgba(88, 166, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+            color: var(--accent-blue);
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            margin: 24px 0;
+        }
+
+        .comparison-table th {
+            background: var(--bg-tertiary);
+            color: var(--accent-blue);
+        }
+
+        .comparison-table td:first-child {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+        }
+
+        /* Scroll Animation */
+        .scroll-reveal {
+            opacity: 1;
+            transform: translateY(0);
+            transition: all 0.6s ease;
+        }
+
+        .scroll-reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Section anchor */
+        section[id] {
+            scroll-margin-top: 100px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress Bar -->
+    <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <span class="badge">⭐⭐ 难度 | 1-3 小时</span>
+        <h1>Day04 Solidity 学习笔记</h1>
+        <p class="subtitle">地址类型、合约类型与全局变量</p>
+        <div class="meta-info">
+            <span class="meta-item">📅 2026-03-02</span>
+            <span class="meta-item">📚 6 大核心概念</span>
+            <span class="meta-item">💻 3 个完整模板</span>
+            <span class="meta-item">❓ 10 个常见问题</span>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav-container">
+        <div class="nav-tabs">
+            <a class="nav-tab active" onclick="scrollToSection('overview')">概览</a>
+            <a class="nav-tab" onclick="scrollToSection('concepts')">核心概念</a>
+            <a class="nav-tab" onclick="scrollToSection('qa')">Q&A</a>
+            <a class="nav-tab" onclick="scrollToSection('templates')">代码模板</a>
+            <a class="nav-tab" onclick="scrollToSection('errors')">常见错误</a>
+            <a class="nav-tab" onclick="scrollToSection('security')">安全实践</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+        <!-- Overview -->
+        <section id="overview" class="scroll-reveal">
+            <h2><span class="icon">📋</span>今日主要内容概览</h2>
+            <p>今日学习围绕 <strong>Solidity 的特殊类型和全局变量</strong> 展开，包含三大核心模块。每个概念都会从<strong>定义、原理、代码示例、使用场景</strong>四个维度详细讲解。</p>
+
+            <div class="info-grid">
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <div class="info-card-icon">📍</div>
+                        <span class="info-card-title">地址类型 Address</span>
+                    </div>
+                    <p class="info-card-desc">
+                        理解 <code>address</code> 和 <code>address payable</code> 的本质区别，掌握地址转换、余额查询和 ETH 转账操作。
+                    </p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <div class="info-card-icon">📄</div>
+                        <span class="info-card-title">合约类型 Contract</span>
+                    </div>
+                    <p class="info-card-desc">
+                        学习如何引用其他合约、地址与合约类型的转换、调用外部合约函数、部署新合约。
+                    </p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <div class="info-card-icon">🌍</div>
+                        <span class="info-card-title">全局变量 Global</span>
+                    </div>
+                    <p class="info-card-desc">
+                        掌握 <code>msg</code>、<code>block</code>、<code>tx</code> 三大系列变量的含义和使用场景。
+                    </p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <div class="info-card-icon">🔔</div>
+                        <span class="info-card-title">事件 Event</span>
+                    </div>
+                    <p class="info-card-desc">
+                        理解事件的原理、indexed 关键字的作用、如何定义和触发事件。
+                    </p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <div class="info-card-icon">🏗️</div>
+                        <span class="info-card-title">构造函数 Constructor</span>
+                    </div>
+                    <p class="info-card-desc">
+                        掌握构造函数的作用、执行时机、参数传递和初始化逻辑。
+                    </p>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-header">
+                        <div class="info-card-icon">🗺️</div>
+                        <span class="info-card-title">映射 Mapping</span>
+                    </div>
+                    <p class="info-card-desc">
+                        理解映射的数据结构、键值对存储、嵌套映射和常见使用模式。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Core Concepts -->
+        <section id="concepts" class="scroll-reveal">
+            <h2><span class="icon">📚</span>核心概念详解</h2>
+
+            <h3>1. 什么是 Address（地址类型）？</h3>
+
+            <div class="alert-box info">
+                <div class="alert-box-title">概念定义</div>
+                <p><code>address</code> 是 Solidity 中专门用于存储<strong>以太坊地址</strong>的数据类型。以太坊地址是一个 <strong>20 字节（160 位）</strong> 的十六进制字符串，代表区块链上的一个账户或合约。</p>
+            </div>
+
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">示例</span>
+                </div>
+                <pre><code><span class="comment">// 地址示例（42个字符，包含0x前缀）</span>
+<span class="number">0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb5</span></code></pre>
+            </div>
+
+            <h4>地址的两种类型</h4>
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th>类型</th>
+                        <th>定义</th>
+                        <th>功能</th>
+                        <th>使用场景</th>
+                    </tr>
+                    <tr>
+                        <td><code>address</code></td>
+                        <td>普通地址类型</td>
+                        <td>只能查询余额，<strong style="color: var(--accent-red);">不能接收 ETH</strong></td>
+                        <td>普通账户、合约地址</td>
+                    </tr>
+                    <tr>
+                        <td><code>address payable</code></td>
+                        <td>可支付地址类型</td>
+                        <td>可以查询余额，<strong style="color: var(--accent-green);">可以接收 ETH</strong></td>
+                        <td>收款地址、资金库、需要转账的地址</td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="alert-box tip">
+                <div class="alert-box-title">为什么需要区分？</div>
+                <p>Solidity 设计者为了<strong>安全性</strong>故意做了这个区分：</p>
+                <ol>
+                    <li><strong>防止意外转账</strong>：编译器会强制检查，确保只有标记为 <code>payable</code> 的地址才能接收 ETH</li>
+                    <li><strong>明确意图</strong>：代码阅读者一眼就能看出哪些地址是用于收款的</li>
+                    <li><strong>避免资金损失</strong>：防止 ETH 被误转到不支持收款的合约或地址</li>
+                </ol>
+            </div>
+
+            <h4>地址类型完整代码示例</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                </div>
+                <pre><code><span class="comment">// SPDX-License-Identifier: MIT</span>
+<span class="keyword">pragma solidity</span> ^0.8.24;
+
+<span class="keyword">contract</span> <span class="function">AddressExample</span> {
+    <span class="comment">// ============ 地址变量声明 ============</span>
+
+    <span class="comment">// 普通地址：只能存储地址，不能接收 ETH</span>
+    <span class="type">address</span> <span class="keyword">public</span> owner;
+    <span class="type">address</span> <span class="keyword">public</span> userWallet;
+
+    <span class="comment">// payable 地址：可以接收 ETH</span>
+    <span class="type">address</span> <span class="keyword">payable</span> <span class="keyword">public</span> treasury;      <span class="comment">// 资金库</span>
+    <span class="type">address</span> <span class="keyword">payable</span> <span class="keyword">public</span> paymentReceiver;  <span class="comment">// 收款人</span>
+
+    <span class="comment">// ============ 地址的基本操作 ============</span>
+
+    <span class="comment">// 获取地址的 ETH 余额（任何地址都可以查余额）</span>
+    <span class="keyword">function</span> <span class="function">getAddressBalance</span>(<span class="type">address</span> _addr) <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>) {
+        <span class="keyword">return</span> _addr.balance;  <span class="comment">// 返回 wei 单位的余额</span>
+    }
+
+    <span class="comment">// 获取合约自身的地址</span>
+    <span class="keyword">function</span> <span class="function">getContractAddress</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">address</span>) {
+        <span class="keyword">return</span> <span class="keyword">address</span>(<span class="keyword">this</span>);  <span class="comment">// this 指代当前合约实例</span>
+    }
+
+    <span class="comment">// 获取合约自身的 ETH 余额</span>
+    <span class="keyword">function</span> <span class="function">getContractBalance</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>) {
+        <span class="keyword">return</span> <span class="keyword">address</span>(<span class="keyword">this</span>).balance;
+    }
+
+    <span class="comment">// ============ 地址比较 ============</span>
+
+    <span class="comment">// 检查两个地址是否相等</span>
+    <span class="keyword">function</span> <span class="function">isSameAddress</span>(<span class="type">address</span> _a, <span class="type">address</span> _b) <span class="keyword">public</span> <span class="keyword">pure</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+        <span class="keyword">return</span> _a == _b;  <span class="comment">// 地址比较是逐字节比较</span>
+    }
+
+    <span class="comment">// 检查地址是否为零地址</span>
+    <span class="keyword">function</span> <span class="function">isZeroAddress</span>(<span class="type">address</span> _addr) <span class="keyword">public</span> <span class="keyword">pure</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+        <span class="comment">// 零地址是默认值，表示"空"或"无效"</span>
+        <span class="keyword">return</span> _addr == <span class="keyword">address</span>(<span class="number">0</span>);
+    }
+
+    <span class="comment">// ============ 地址类型转换 ============</span>
+
+    <span class="comment">// 普通地址 → payable 地址（需要显式转换）</span>
+    <span class="keyword">function</span> <span class="function">toPayable</span>(<span class="type">address</span> _normalAddr) <span class="keyword">public</span> <span class="keyword">pure</span> <span class="keyword">returns</span> (<span class="type">address</span> <span class="keyword">payable</span>) {
+        <span class="comment">// 使用 payable() 关键字进行转换</span>
+        <span class="keyword">return</span> <span class="keyword">payable</span>(_normalAddr);
+    }
+
+    <span class="comment">// payable 地址 → 普通地址（隐式转换，自动完成）</span>
+    <span class="keyword">function</span> <span class="function">fromPayable</span>(<span class="type">address</span> <span class="keyword">payable</span> _payableAddr) <span class="keyword">public</span> <span class="keyword">pure</span> <span class="keyword">returns</span> (<span class="type">address</span>) {
+        <span class="comment">// 可以直接赋值，不需要显式转换</span>
+        <span class="keyword">return</span> _payableAddr;
+    }
+
+    <span class="comment">// ============ 转账操作（只有 payable 地址可以转账） ============</span>
+
+    <span class="comment">// 向 payable 地址转账 ETH</span>
+    <span class="keyword">function</span> <span class="function">sendETH</span>(<span class="type">address</span> <span class="keyword">payable</span> _receiver, <span class="type">uint256</span> _amount) <span class="keyword">public</span> {
+        <span class="comment">// transfer 方法：失败时自动 revert（回滚交易）</span>
+        _receiver.transfer(_amount);
+    }
+}</code></pre>
+            </div>
+
+            <div class="alert-box tip">
+                <div class="alert-box-title">关键知识点总结</div>
+                <ol>
+                    <li><strong>所有以太坊地址都是 20 字节</strong>，与类型无关</li>
+                    <li><strong><code>address</code> 和 <code>address payable</code> 可以互相转换</strong>：
+                        <ul>
+                            <li><code>address</code> → <code>address payable</code>: 需要使用 <code>payable()</code> 显式转换</li>
+                            <li><code>address payable</code> → <code>address</code>: 可以直接赋值（隐式转换）</li>
+                        </ul>
+                    </li>
+                    <li><strong>只有 <code>address payable</code> 可以调用 <code>.transfer()</code> 和 <code>.send()</code> 方法</strong></li>
+                    <li><strong>任何地址都可以查询 <code>.balance</code> 属性</strong></li>
+                </ol>
+            </div>
+
+            <h3>2. 什么是 msg.sender？</h3>
+
+            <div class="alert-box info">
+                <div class="alert-box-title">概念定义</div>
+                <p><code>msg.sender</code> 是 Solidity 的<strong>全局变量</strong>，表示<strong>当前函数调用的直接发起者</strong>（一个地址）。</p>
+            </div>
+
+            <h4>重要特性</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                </div>
+                <pre><code><span class="comment">// 特性1: msg.sender 的值会根据调用上下文变化</span>
+<span class="comment">// 特性2: 在构造函数中，msg.sender 是合约的部署者</span>
+<span class="comment">// 特性3: 在普通函数中，msg.sender 是调用该函数的账户或合约</span>
+<span class="comment">// 特性4: 如果合约A调用合约B，那么在合约B中 msg.sender 是合约A的地址</span></code></pre>
+            </div>
+
+            <h4>代码示例详解</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                </div>
+                <pre><code><span class="keyword">contract</span> <span class="function">MsgSenderExample</span> {
+    <span class="comment">// 记录不同阶段的 msg.sender</span>
+    <span class="type">address</span> <span class="keyword">public</span> deployer;      <span class="comment">// 部署者</span>
+    <span class="type">address</span> <span class="keyword">public</span> lastCaller;    <span class="comment">// 最后调用者</span>
+
+    <span class="comment">// ============ 构造函数 ============</span>
+
+    <span class="keyword">constructor</span>() {
+        <span class="comment">// 部署合约时，msg.sender 是执行部署交易的账户地址</span>
+        deployer = <span class="type">msg</span>.sender;
+    }
+
+    <span class="comment">// ============ 普通函数 ============</span>
+
+    <span class="comment">// 任何人都可以调用，记录调用者</span>
+    <span class="keyword">function</span> <span class="function">doSomething</span>() <span class="keyword">public</span> {
+        <span class="comment">// 此时 msg.sender 是调用 doSomething() 的账户</span>
+        lastCaller = <span class="type">msg</span>.sender;
+    }
+
+    <span class="comment">// 只有部署者可以调用</span>
+    <span class="keyword">function</span> <span class="function">onlyDeployerCanCall</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">string</span> <span class="keyword">memory</span>) {
+        <span class="comment">// require 检查：如果不是部署者，交易会被拒绝</span>
+        <span class="function">require</span>(<span class="type">msg</span>.sender == deployer, <span class="string">"Only deployer can call this"</span>);
+        <span class="keyword">return</span> <span class="string">"Hello, deployer!"</span>;
+    }
+
+    <span class="comment">// 获取当前调用者的地址</span>
+    <span class="keyword">function</span> <span class="function">whoIsCalling</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">address</span>) {
+        <span class="keyword">return</span> <span class="type">msg</span>.sender;
+    }
+}</code></pre>
+            </div>
+
+            <h4>经典的 Ownable 权限控制模式</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                </div>
+                <pre><code><span class="comment">// 经典的 Ownable（可拥有）模式</span>
+<span class="keyword">contract</span> <span class="function">Ownable</span> {
+    <span class="type">address</span> <span class="keyword">public</span> owner;  <span class="comment">// 记录合约所有者</span>
+
+    <span class="keyword">constructor</span>() {
+        <span class="comment">// 部署时设置 owner 为部署者</span>
+        owner = <span class="type">msg</span>.sender;
+    }
+
+    <span class="comment">// 修饰符：限制只有 owner 可以调用</span>
+    <span class="keyword">modifier</span> <span class="function">onlyOwner</span>() {
+        <span class="function">require</span>(<span class="type">msg</span>.sender == owner, <span class="string">"Not the owner"</span>);
+        _;  <span class="comment">// 这里会插入被修饰函数的代码</span>
+    }
+
+    <span class="comment">// 只有 owner 可以调用的函数</span>
+    <span class="keyword">function</span> <span class="function">sensitiveFunction</span>() <span class="keyword">public</span> onlyOwner {
+        <span class="comment">// 敏感操作...</span>
+    }
+}</code></pre>
+            </div>
+
+            <h3>3. 什么是 Event（事件）？</h3>
+
+            <div class="alert-box info">
+                <div class="alert-box-title">概念定义</div>
+                <p>Event（事件）是 Solidity 提供的一种<strong>日志记录机制</strong>。当合约执行过程中触发事件时，会将相关信息写入区块链的交易日志中。</p>
+            </div>
+
+            <div class="diagram">
+                <div class="diagram-title">事件的作用</div>
+                <div class="diagram-content">
+┌─────────────────────────────────────────────────────────────┐
+│                      事件的作用                              │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  1. 省 Gas                                                  │
+│     - 存储数据到合约状态变量：贵（永久存储）                  │
+│     - 记录事件到交易日志：便宜（临时存储）                    │
+│                                                             │
+│  2. 方便外部监听                                            │
+│     - DApp 可以实时订阅事件                                  │
+│     - 钱包可以显示交易详情                                   │
+│                                                             │
+│  3. 可追溯历史                                              │
+│     - 可以查询合约的所有历史操作                             │
+│     - 方便审计和调试                                         │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+                </div>
+            </div>
+
+            <h4>事件定义与使用完整示例</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                </div>
+                <pre><code><span class="keyword">contract</span> <span class="function">EventExample</span> {
+    <span class="comment">// ============ 事件定义 ============</span>
+
+    <span class="comment">// 基础事件：记录转账</span>
+    <span class="comment">// indexed 表示这个参数可以被索引搜索（最多3个indexed参数）</span>
+    <span class="keyword">event</span> <span class="function">Transfer</span>(
+        <span class="type">address</span> <span class="keyword">indexed</span> <span class="keyword">from</span>,    <span class="comment">// 转出地址（可索引）</span>
+        <span class="type">address</span> <span class="keyword">indexed</span> to,      <span class="comment">// 转入地址（可索引）</span>
+        <span class="type">uint256</span> amount           <span class="comment">// 金额（不可索引）</span>
+    );
+
+    <span class="comment">// 复杂事件：记录状态变更</span>
+    <span class="keyword">event</span> <span class="function">StatusChanged</span>(
+        <span class="type">address</span> <span class="keyword">indexed</span> user,    <span class="comment">// 谁触发的</span>
+        <span class="type">uint256</span> <span class="keyword">indexed</span> oldStatus,  <span class="comment">// 旧状态</span>
+        <span class="type">uint256</span> <span class="keyword">indexed</span> newStatus,  <span class="comment">// 新状态</span>
+        <span class="type">string</span> reason            <span class="comment">// 变更原因</span>
+    );
+
+    <span class="comment">// 无参数事件：简单标记</span>
+    <span class="keyword">event</span> <span class="function">ContractPaused</span>();
+    <span class="keyword">event</span> <span class="function">ContractUnpaused</span>();
+
+    <span class="comment">// ============ 事件触发 ============</span>
+
+    <span class="keyword">function</span> <span class="function">transfer</span>(<span class="type">address</span> _to, <span class="type">uint256</span> _amount) <span class="keyword">public</span> {
+        <span class="comment">// ... 执行转账逻辑 ...</span>
+
+        <span class="comment">// 触发事件：emit 关键字 + 事件名 + 参数</span>
+        <span class="keyword">emit</span> <span class="function">Transfer</span>(<span class="type">msg</span>.sender, _to, _amount);
+    }
+
+    <span class="keyword">function</span> <span class="function">changeStatus</span>(<span class="type">uint256</span> _newStatus, <span class="type">string</span> <span class="keyword">memory</span> _reason) <span class="keyword">public</span> {
+        <span class="type">uint256</span> oldStatus = <span class="number">0</span>;  <span class="comment">// 假设查询到旧状态</span>
+
+        <span class="comment">// ... 执行状态变更 ...</span>
+
+        <span class="comment">// 触发事件</span>
+        <span class="keyword">emit</span> <span class="function">StatusChanged</span>(<span class="type">msg</span>.sender, oldStatus, _newStatus, _reason);
+    }
+
+    <span class="keyword">function</span> <span class="function">pause</span>() <span class="keyword">public</span> {
+        <span class="comment">// ... 暂停逻辑 ...</span>
+        <span class="keyword">emit</span> <span class="function">ContractPaused</span>();  <span class="comment">// 无参数事件</span>
+    }
+}</code></pre>
+            </div>
+
+            <div class="alert-box tip">
+                <div class="alert-box-title">indexed 关键字详解</div>
+                <div class="code-block" style="margin-top: 12px;">
+                    <pre style="padding: 16px;"><code><span class="comment">// indexed 参数可以被外部快速搜索和过滤</span>
+<span class="comment">// 一个事件最多有 3 个 indexed 参数</span>
+
+<span class="keyword">event</span> <span class="function">Deposit</span>(
+    <span class="type">address</span> <span class="keyword">indexed</span> user,     <span class="comment">// ✅ 可以搜索"某个用户的所有存款"</span>
+    <span class="type">uint256</span> <span class="keyword">indexed</span> amount,   <span class="comment">// ✅ 可以搜索"特定金额的所有存款"</span>
+    <span class="type">uint256</span> timestamp         <span class="comment">// ❌ 没有 indexed，只能读取不能搜索</span>
+);
+
+<span class="comment">// 外部查询示例：</span>
+<span class="comment">// - 查询 user = 0x123... 的所有 Deposit 事件 ✓</span>
+<span class="comment">// - 查询 amount = 1000 的所有 Deposit 事件 ✓</span>
+<span class="comment">// - 查询 timestamp &gt; 1000000 的所有 Deposit 事件 ✗</span></code></pre>
+                </div>
+            </div>
+
+            <h3>4. 什么是 Constructor（构造函数）？</h3>
+
+            <div class="alert-box info">
+                <div class="alert-box-title">概念定义</div>
+                <p>Constructor（构造函数）是合约中一个<strong>特殊的函数</strong>，它在合约<strong>部署时自动执行一次</strong>，用于初始化合约的状态变量。</p>
+            </div>
+
+            <h4>构造函数的特点</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                </div>
+                <pre><code><span class="comment">// 特点1: 每个合约可以有 0 个或 1 个构造函数</span>
+<span class="comment">// 特点2: 不写构造函数时，Solidity 自动生成一个空的</span>
+<span class="comment">// 特点3: 构造函数只执行一次，之后无法再调用</span>
+<span class="comment">// 特点4: 构造函数可以是 payable（用于工厂合约部署）</span>
+<span class="comment">// 特点5: 构造函数中可以使用 msg.sender（部署者地址）</span></code></pre>
+            </div>
+
+            <h4>构造函数完整示例</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                </div>
+                <pre><code><span class="keyword">contract</span> <span class="function">ConstructorExample</span> {
+    <span class="comment">// ============ 状态变量 ============</span>
+
+    <span class="type">address</span> <span class="keyword">public</span> owner;           <span class="comment">// 合约所有者</span>
+    <span class="type">address</span> <span class="keyword">public</span> manager;         <span class="comment">// 管理员</span>
+    <span class="type">uint256</span> <span class="keyword">public</span> creationTime;    <span class="comment">// 创建时间</span>
+    <span class="type">string</span> <span class="keyword">public</span> name;             <span class="comment">// 合约名称</span>
+    <span class="type">bool</span> <span class="keyword">public</span> initialized;        <span class="comment">// 是否已初始化</span>
+
+    <span class="comment">// ============ 构造函数 ============</span>
+
+    <span class="comment">// 带参数的构造函数</span>
+    <span class="keyword">constructor</span>(
+        <span class="type">address</span> _manager,      <span class="comment">// 外部传入的管理员地址</span>
+        <span class="type">string</span> <span class="keyword">memory</span> _name    <span class="comment">// 合约名称</span>
+    ) {
+        <span class="comment">// msg.sender: 部署此合约的账户地址</span>
+        owner = <span class="type">msg</span>.sender;
+
+        <span class="comment">// 设置传入的参数</span>
+        manager = _manager;
+        name = _name;
+
+        <span class="comment">// 记录创建时间</span>
+        creationTime = <span class="type">block</span>.timestamp;
+
+        <span class="comment">// 标记已初始化</span>
+        initialized = <span class="keyword">true</span>;
+    }
+
+    <span class="comment">// ============ 使用场景 ============</span>
+
+    <span class="comment">// 检查是否是 owner</span>
+    <span class="keyword">function</span> <span class="function">isOwner</span>(<span class="type">address</span> _addr) <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+        <span class="keyword">return</span> _addr == owner;
+    }
+}</code></pre>
+            </div>
+
+            <h3>5. 什么是 Mapping（映射）？</h3>
+
+            <div class="alert-box info">
+                <div class="alert-box-title">概念定义</div>
+                <p>Mapping（映射）是 Solidity 中的<strong>键值对存储结构</strong>，类似于其他语言中的字典（Dictionary）或哈希表（Hash Map）。</p>
+            </div>
+
+            <h4>映射的语法</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                </div>
+                <pre><code><span class="comment">// 基本语法</span>
+<span class="type">mapping</span>(KeyType => ValueType) <span class="keyword">public</span> variableName;
+
+<span class="comment">// KeyType（键类型）：只能是基本类型（address, uint, bytes 等）</span>
+<span class="comment">// ValueType（值类型）：可以是任何类型（包括数组、结构体、另一个映射）</span></code></pre>
+            </div>
+
+            <h4>映射完整示例</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                </div>
+                <pre><code><span class="keyword">contract</span> <span class="function">MappingExample</span> {
+    <span class="comment">// ============ 基础映射 ============</span>
+
+    <span class="comment">// 地址 → bool：记录是否是成员</span>
+    <span class="comment">// 用途：白名单、权限检查</span>
+    <span class="type">mapping</span>(<span class="type">address</span> => <span class="type">bool</span>) <span class="keyword">public</span> isMember;
+
+    <span class="comment">// 地址 → uint：记录余额</span>
+    <span class="comment">// 用途：账户余额、积分、代币余额</span>
+    <span class="type">mapping</span>(<span class="type">address</span> => <span class="type">uint256</span>) <span class="keyword">public</span> balances;
+
+    <span class="comment">// ============ 嵌套映射 ============</span>
+
+    <span class="comment">// 地址 → (地址 → uint)：记录对某个代币的授权额度</span>
+    <span class="comment">// 用途：ERC20 的 approve 机制</span>
+    <span class="type">mapping</span>(<span class="type">address</span> => <span class="type">mapping</span>(<span class="type">address</span> => <span class="type">uint256</span>)) <span class="keyword">public</span> allowance;
+
+    <span class="comment">// 使用示例：</span>
+    <span class="comment">// allowance[owner][spender] = 1000</span>
+    <span class="comment">// 表示 owner 授权 spender 可以花费 1000 个代币</span>
+
+    <span class="comment">// ============ 映射操作 ============</span>
+
+    <span class="comment">// 添加/更新成员</span>
+    <span class="keyword">function</span> <span class="function">addMember</span>(<span class="type">address</span> _user) <span class="keyword">public</span> {
+        isMember[_user] = <span class="keyword">true</span>;  <span class="comment">// 直接赋值，不存在则创建</span>
+    }
+
+    <span class="comment">// 查询成员</span>
+    <span class="keyword">function</span> <span class="function">checkMember</span>(<span class="type">address</span> _user) <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+        <span class="keyword">return</span> isMember[_user];  <span class="comment">// 如果不存在，返回默认值 false</span>
+    }
+
+    <span class="comment">// 增加余额</span>
+    <span class="keyword">function</span> <span class="function">addBalance</span>(<span class="type">address</span> _user, <span class="type">uint256</span> _amount) <span class="keyword">public</span> {
+        balances[_user] += _amount;  <span class="comment">// 直接累加</span>
+    }
+
+    <span class="comment">// 查询余额</span>
+    <span class="keyword">function</span> <span class="function">getBalance</span>(<span class="type">address</span> _user) <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>) {
+        <span class="keyword">return</span> balances[_user];  <span class="comment">// 如果不存在，返回默认值 0</span>
+    }
+
+    <span class="comment">// 设置授权额度</span>
+    <span class="keyword">function</span> <span class="function">approve</span>(<span class="type">address</span> _spender, <span class="type">uint256</span> _amount) <span class="keyword">public</span> {
+        <span class="comment">// msg.sender 是授权方（owner）</span>
+        allowance[<span class="type">msg</span>.sender][_spender] = _amount;
+    }
+
+    <span class="comment">// 查询授权额度</span>
+    <span class="keyword">function</span> <span class="function">getAllowance</span>(<span class="type">address</span> _owner, <span class="type">address</span> _spender)
+        <span class="keyword">public</span>
+        <span class="keyword">view</span>
+        <span class="keyword">returns</span> (<span class="type">uint256</span>)
+    {
+        <span class="keyword">return</span> allowance[_owner][_spender];
+    }
+}</code></pre>
+            </div>
+
+            <h3>6. 什么是 Contract Type（合约类型）？</h3>
+
+            <div class="alert-box info">
+                <div class="alert-box-title">概念定义</div>
+                <p>在 Solidity 中，<strong>每个合约定义本身就是一种类型</strong>。就像 <code>uint</code>、<code>string</code> 是类型一样，<code>SimpleToken</code>、<code>AddressDemo</code> 这些合约名也是类型。</p>
+            </div>
+
+            <h4>类比理解</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">类比</span>
+                </div>
+                <pre><code><span class="comment">// 类比理解：</span>
+<span class="comment">// Java: UserService userService = new UserService();</span>
+<span class="comment">//          ↑类型      ↑变量名</span>
+
+<span class="comment">// Solidity: SimpleToken public token;</span>
+<span class="comment">//              ↑类型      ↑变量名</span></code></pre>
+            </div>
+
+            <h4>合约类型的两种使用方式</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                </div>
+                <pre><code><span class="comment">// 方式1: 引用已部署的合约（通过地址）</span>
+SimpleToken token = <span class="function">SimpleToken</span>(<span class="number">0x123...</span>);
+
+<span class="comment">// 方式2: 部署新合约</span>
+SimpleToken newToken = <span class="keyword">new</span> <span class="function">SimpleToken</span>(<span class="number">1000</span>);</code></pre>
+            </div>
+
+            <h4>合约类型完整示例</h4>
+            <div class="code-block">
+                <div class="code-header">
+                    <span class="code-lang">solidity</span>
+                    <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                </div>
+                <pre><code><span class="comment">// SPDX-License-Identifier: MIT</span>
+<span class="keyword">pragma solidity</span> ^0.8.24;
+
+<span class="comment">// ============ 被引用的合约 ============</span>
+
+<span class="keyword">contract</span> <span class="function">SimpleToken</span> {
+    <span class="type">string</span> <span class="keyword">public</span> name = <span class="string">"Simple Token"</span>;
+    <span class="type">string</span> <span class="keyword">public</span> symbol = <span class="string">"ST"</span>;
+    <span class="type">uint256</span> <span class="keyword">public</span> totalSupply;
+    <span class="type">mapping</span>(<span class="type">address</span> => <span class="type">uint256</span>) <span class="keyword">public</span> balanceOf;
+
+    <span class="keyword">constructor</span>(<span class="type">uint256</span> _initialSupply) {
+        totalSupply = _initialSupply;
+        balanceOf[<span class="type">msg</span>.sender] = _initialSupply;
+    }
+
+    <span class="keyword">function</span> <span class="function">transfer</span>(<span class="type">address</span> _to, <span class="type">uint256</span> _value) <span class="keyword">public</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+        <span class="function">require</span>(balanceOf[<span class="type">msg</span>.sender] >= _value, <span class="string">"Insufficient balance"</span>);
+        balanceOf[<span class="type">msg</span>.sender] -= _value;
+        balanceOf[_to] += _value;
+        <span class="keyword">return</span> <span class="keyword">true</span>;
+    }
+}
+
+<span class="comment">// ============ 引用合约的合约 ============</span>
+
+<span class="keyword">import</span> <span class="string">"./SimpleToken.sol"</span>;  <span class="comment">// 导入合约定义</span>
+
+<span class="keyword">contract</span> <span class="function">ContractTypeExample</span> {
+    <span class="comment">// ============ 合约类型变量声明 ============</span>
+
+    <span class="comment">// 声明一个 SimpleToken 类型的变量</span>
+    <span class="comment">// 这就像说："我要存一个 SimpleToken 合约的引用"</span>
+    SimpleToken <span class="keyword">public</span> token;
+
+    <span class="comment">// 也可以同时存地址</span>
+    <span class="type">address</span> <span class="keyword">public</span> tokenAddress;
+
+    <span class="comment">// ============ 设置合约引用 ============</span>
+
+    <span class="comment">// 通过地址设置合约引用</span>
+    <span class="keyword">function</span> <span class="function">setToken</span>(<span class="type">address</span> _tokenAddress) <span class="keyword">public</span> {
+        <span class="comment">// 安全检查：不能是零地址</span>
+        <span class="function">require</span>(_tokenAddress != <span class="keyword">address</span>(<span class="number">0</span>), <span class="string">"Invalid address"</span>);
+
+        <span class="comment">// 关键步骤：将 address 转换为合约类型</span>
+        <span class="comment">// 这就像告诉编译器："相信我，这个地址上部署的是 SimpleToken"</span>
+        token = <span class="function">SimpleToken</span>(_tokenAddress);
+
+        <span class="comment">// 同时保存地址</span>
+        tokenAddress = _tokenAddress;
+    }
+
+    <span class="comment">// ============ 调用其他合约的函数 ============</span>
+
+    <span class="comment">// 调用 token 合约的 name() 函数</span>
+    <span class="keyword">function</span> <span class="function">getTokenName</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">string</span> <span class="keyword">memory</span>) {
+        <span class="comment">// 先检查是否已设置</span>
+        <span class="function">require</span>(<span class="keyword">address</span>(token) != <span class="keyword">address</span>(<span class="number">0</span>), <span class="string">"Token not set"</span>);
+
+        <span class="comment">// 像调用本地函数一样调用其他合约的函数</span>
+        <span class="keyword">return</span> token.name();
+    }
+
+    <span class="comment">// 调用 token 合约的 balanceOf() 函数</span>
+    <span class="keyword">function</span> <span class="function">getMyTokenBalance</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>) {
+        <span class="comment">// 查询当前调用者在 token 合约中的余额</span>
+        <span class="keyword">return</span> token.balanceOf(<span class="type">msg</span>.sender);
+    }
+
+    <span class="comment">// 通过本合约转账 token</span>
+    <span class="keyword">function</span> <span class="function">transferToken</span>(<span class="type">address</span> _to, <span class="type">uint256</span> _amount) <span class="keyword">public</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+        <span class="comment">// 注意：这里 msg.sender 是调用者</span>
+        <span class="comment">// 但 token.transfer 中的 msg.sender 会变成本合约的地址！</span>
+        <span class="keyword">return</span> token.transfer(_to, _amount);
+    }
+
+    <span class="comment">// ============ 部署新合约 ============</span>
+
+    <span class="comment">// 在本合约中部署新的 SimpleToken 合约</span>
+    <span class="keyword">function</span> <span class="function">createNewToken</span>(<span class="type">uint256</span> _initialSupply)
+        <span class="keyword">public</span>
+        <span class="keyword">returns</span> (<span class="type">address</span>)
+    {
+        <span class="comment">// 使用 new 关键字部署新合约</span>
+        <span class="comment">// 这会创建一个新的合约实例，并返回合约地址</span>
+        SimpleToken newToken = <span class="keyword">new</span> <span class="function">SimpleToken</span>(_initialSupply);
+
+        <span class="comment">// 获取新合约的地址</span>
+        <span class="type">address</span> newTokenAddress = <span class="keyword">address</span>(newToken);
+
+        <span class="comment">// 可以自动设置为当前 token</span>
+        token = newToken;
+        tokenAddress = newTokenAddress;
+
+        <span class="keyword">return</span> newTokenAddress;
+    }
+
+    <span class="comment">// ============ 合约类型和地址的转换 ============</span>
+
+    <span class="comment">// 合约类型 → 地址</span>
+    <span class="keyword">function</span> <span class="function">getTokenAsAddress</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">address</span>) {
+        <span class="keyword">return</span> <span class="keyword">address</span>(token);  <span class="comment">// 直接转换</span>
+    }
+
+    <span class="comment">// 地址 → 合约类型</span>
+    <span class="keyword">function</span> <span class="function">convertAddressToToken</span>(<span class="type">address</span> _addr)
+        <span class="keyword">public</span>
+        <span class="keyword">pure</span>
+        <span class="keyword">returns</span> (SimpleToken)
+    {
+        <span class="keyword">return</span> <span class="function">SimpleToken</span>(_addr);  <span class="comment">// 显式转换</span>
+    }
+}</code></pre>
+            </div>
+
+            <div class="diagram">
+                <div class="diagram-title">合约类型 vs 地址的关系</div>
+                <div class="diagram-content" style="font-size: 12px;">
+┌─────────────────────────────────────────────────────────────┐
+│                    合约类型与地址的关系                        │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│   SimpleToken.sol                                          │
+│   ┌─────────────────────────────────────┐                  │
+│   │ contract SimpleToken {              │                  │
+│   │   function name() returns (string)  │ ← 类型定义       │
+│   │   function transfer(...)            │                  │
+│   │ }                                   │                  │
+│   └─────────────────────────────────────┘                  │
+│                   │                                         │
+│   部署后          ▼                                         │
+│          0x742d35Cc6634... ← 合约实例（有具体的地址）        │
+│                   │                                         │
+│   引用            ▼                                         │
+│   SimpleToken token = SimpleToken(0x742d...);               │
+│          ↑              ↑              ↑                    │
+│       类型声明      类型转换          具体地址               │
+│                                                             │
+│   调用            ▼                                         │
+│   token.name()  ← 通过合约变量调用函数                       │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+                </div>
+            </div>
+
+            <h3>7. 全局变量详解（msg / block / tx）</h3>
+
+            <div class="tabs-container">
+                <div class="tabs-header">
+                    <button class="tab-btn active" onclick="switchTab(event, 'msg-tab')">msg 系列</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'block-tab')">block 系列</button>
+                    <button class="tab-btn" onclick="switchTab(event, 'tx-tab')">tx 系列</button>
+                </div>
+
+                <div id="msg-tab" class="tab-content active">
+                    <h4 style="color: var(--accent-blue);">msg 系列：当前消息调用信息</h4>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">solidity</span>
+                            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                        </div>
+                        <pre><code><span class="keyword">contract</span> <span class="function">MsgVariables</span> {
+    <span class="comment">// ============ msg.sender ============</span>
+    <span class="comment">// 含义：当前函数调用的直接发送者（地址）</span>
+    <span class="comment">// 使用场景：权限控制、记录操作人</span>
+
+    <span class="keyword">function</span> <span class="function">getSender</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">address</span>) {
+        <span class="keyword">return</span> <span class="type">msg</span>.sender;
+    }
+
+    <span class="comment">// ============ msg.value ============</span>
+    <span class="comment">// 含义：随本次调用发送的 ETH 数量（单位：wei）</span>
+    <span class="comment">// 注意：函数必须标记为 payable 才能接收 ETH</span>
+    <span class="comment">// 1 ETH = 10^18 wei</span>
+
+    <span class="keyword">function</span> <span class="function">deposit</span>() <span class="keyword">public</span> <span class="keyword">payable</span> {
+        <span class="comment">// msg.value 就是用户发送的 ETH 数量</span>
+        <span class="type">uint256</span> amount = <span class="type">msg</span>.value;
+        <span class="comment">// ... 处理存款逻辑 ...</span>
+    }
+
+    <span class="comment">// ============ msg.data ============</span>
+    <span class="comment">// 含义：完整的调用数据（calldata），包含函数选择器和参数</span>
+    <span class="comment">// 使用场景：底层合约交互、代理合约</span>
+
+    <span class="keyword">function</span> <span class="function">getCallData</span>() <span class="keyword">public</span> <span class="keyword">pure</span> <span class="keyword">returns</span> (<span class="type">bytes</span> <span class="keyword">memory</span>) {
+        <span class="keyword">return</span> <span class="type">msg</span>.data;
+    }
+
+    <span class="comment">// ============ msg.sig ============</span>
+    <span class="comment">// 含义：函数调用的选择器（selector），即 msg.data 的前4字节</span>
+    <span class="comment">// 计算方式：keccak256("functionName(paramTypes)") 的前4字节</span>
+
+    <span class="keyword">function</span> <span class="function">getFunctionSelector</span>() <span class="keyword">public</span> <span class="keyword">pure</span> <span class="keyword">returns</span> (<span class="type">bytes4</span>) {
+        <span class="keyword">return</span> <span class="type">msg</span>.sig;
+    }
+    <span class="comment">// 例如：调用 getSender() 时，msg.sig = 0x0a...（4字节）</span>
+}</code></pre>
+                    </div>
+                </div>
+
+                <div id="block-tab" class="tab-content">
+                    <h4 style="color: var(--accent-purple);">block 系列：区块信息</h4>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">solidity</span>
+                            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                        </div>
+                        <pre><code><span class="keyword">contract</span> <span class="function">BlockVariables</span> {
+    <span class="comment">// ============ block.timestamp ============</span>
+    <span class="comment">// 含义：当前区块的时间戳（Unix 时间，单位：秒）</span>
+    <span class="comment">// 用途：时间锁、限时活动、锁仓释放</span>
+    <span class="comment">// 注意：可以被矿工操纵（大约 ±15 秒范围），不要用于高价值随机</span>
+
+    <span class="type">uint256</span> <span class="keyword">public</span> unlockTime;
+
+    <span class="keyword">function</span> <span class="function">setUnlockTime</span>(<span class="type">uint256</span> _delay) <span class="keyword">public</span> {
+        unlockTime = <span class="type">block</span>.timestamp + _delay;  <span class="comment">// 例如：当前时间 + 7天</span>
+    }
+
+    <span class="keyword">function</span> <span class="function">withdraw</span>() <span class="keyword">public</span> {
+        <span class="function">require</span>(<span class="type">block</span>.timestamp >= unlockTime, <span class="string">"Not yet unlocked"</span>);
+        <span class="comment">// ... 执行提款 ...</span>
+    }
+
+    <span class="comment">// ============ block.number ============</span>
+    <span class="comment">// 含义：当前区块的编号（高度）</span>
+    <span class="comment">// 用途：投票期限、锁定期间</span>
+    <span class="comment">// 比 timestamp 更精确，每个区块增加 1</span>
+
+    <span class="type">uint256</span> <span class="keyword">public</span> startBlock;
+    <span class="type">uint256</span> <span class="keyword">public constant</span> VOTING_PERIOD = <span class="number">100</span>;  <span class="comment">// 100 个区块</span>
+
+    <span class="keyword">function</span> <span class="function">startVoting</span>() <span class="keyword">public</span> {
+        startBlock = <span class="type">block</span>.number;
+    }
+
+    <span class="keyword">function</span> <span class="function">isVotingActive</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+        <span class="keyword">return</span> <span class="type">block</span>.number < startBlock + VOTING_PERIOD;
+    }
+
+    <span class="comment">// ============ block.coinbase ============</span>
+    <span class="comment">// 含义：挖出当前区块的矿工/验证者的地址</span>
+    <span class="comment">// 用途：矿工奖励分配（很少直接使用）</span>
+
+    <span class="keyword">function</span> <span class="function">getMiner</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">address</span>) {
+        <span class="keyword">return</span> <span class="type">block</span>.coinbase;
+    }
+
+    <span class="comment">// ============ block.prevrandao ============</span>
+    <span class="comment">// 含义：区块的随机数（Paris 升级后替代 difficulty）</span>
+    <span class="comment">// 警告：可以被矿工/验证者操控，不要用于高价值随机！</span>
+
+    <span class="keyword">function</span> <span class="function">getRandomNumber</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>) {
+        <span class="keyword">return</span> <span class="type">block</span>.prevrandao;  <span class="comment">// ⚠️ 不安全，仅用于演示</span>
+    }
+
+    <span class="comment">// ============ block.gaslimit ============</span>
+    <span class="comment">// 含义：当前区块允许的最大 gas 消耗量</span>
+
+    <span class="keyword">function</span> <span class="function">getBlockGasLimit</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>) {
+        <span class="keyword">return</span> <span class="type">block</span>.gaslimit;
+    }
+}</code></pre>
+                    </div>
+                </div>
+
+                <div id="tx-tab" class="tab-content">
+                    <h4 style="color: var(--accent-green);">tx 系列：交易信息</h4>
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">solidity</span>
+                            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                        </div>
+                        <pre><code><span class="keyword">contract</span> <span class="function">TxVariables</span> {
+    <span class="comment">// ============ tx.origin ============</span>
+    <span class="comment">// 含义：整个交易链条的最初发起者</span>
+    <span class="comment">// ⚠️ 重要警告：有安全风险，不要用做权限控制！</span>
+
+    <span class="keyword">function</span> <span class="function">getTransactionOrigin</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">address</span>) {
+        <span class="keyword">return</span> <span class="type">tx</span>.origin;
+    }
+
+    <span class="comment">// 为什么危险？</span>
+    <span class="comment">// 场景：用户 A 调用恶意合约 B，B 调用你的合约 C</span>
+    <span class="comment">// - 在合约 C 中：tx.origin = A（用户本人）</span>
+    <span class="comment">// - 在合约 C 中：msg.sender = B（恶意合约）</span>
+    <span class="comment">// 如果用 tx.origin 做权限控制，攻击者可以诱骗用户调用恶意合约</span>
+
+    <span class="comment">// ============ tx.gasprice ============</span>
+    <span class="comment">// 含义：发送者愿意为每单位 gas 支付的价格（wei）</span>
+    <span class="comment">// 用途：计算交易成本</span>
+
+    <span class="keyword">function</span> <span class="function">getGasPrice</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>) {
+        <span class="keyword">return</span> <span class="type">tx</span>.gasprice;
+    }
+
+    <span class="comment">// 计算交易成本公式：</span>
+    <span class="comment">// 总成本 = gasUsed * tx.gasprice</span>
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <h4>全局变量对比表</h4>
+            <div class="table-container">
+                <table class="comparison-table">
+                    <tr>
+                        <th>变量</th>
+                        <th>类型</th>
+                        <th>含义</th>
+                        <th>使用场景</th>
+                        <th>注意事项</th>
+                    </tr>
+                    <tr>
+                        <td><code>msg.sender</code></td>
+                        <td>address</td>
+                        <td>直接调用者</td>
+                        <td>权限控制</td>
+                        <td>合约调用时会变化</td>
+                    </tr>
+                    <tr>
+                        <td><code>msg.value</code></td>
+                        <td>uint256</td>
+                        <td>发送的 ETH</td>
+                        <td>接收付款</td>
+                        <td>函数需标记 payable</td>
+                    </tr>
+                    <tr>
+                        <td><code>msg.data</code></td>
+                        <td>bytes</td>
+                        <td>原始调用数据</td>
+                        <td>底层操作</td>
+                        <td>较少直接使用</td>
+                    </tr>
+                    <tr>
+                        <td><code>msg.sig</code></td>
+                        <td>bytes4</td>
+                        <td>函数选择器</td>
+                        <td>识别函数</td>
+                        <td>4字节标识符</td>
+                    </tr>
+                    <tr>
+                        <td><code>block.timestamp</code></td>
+                        <td>uint256</td>
+                        <td>区块时间</td>
+                        <td>时间锁</td>
+                        <td>可被矿工微调</td>
+                    </tr>
+                    <tr>
+                        <td><code>block.number</code></td>
+                        <td>uint256</td>
+                        <td>区块高度</td>
+                        <td>计时</td>
+                        <td>精确可靠</td>
+                    </tr>
+                    <tr>
+                        <td><code>tx.origin</code></td>
+                        <td>address</td>
+                        <td>交易发起者</td>
+                        <td>-</td>
+                        <td style="color: var(--accent-red);">⚠️ 不要用做权限</td>
+                    </tr>
+                    <tr>
+                        <td><code>tx.gasprice</code></td>
+                        <td>uint256</td>
+                        <td>gas 价格</td>
+                        <td>成本计算</td>
+                        <td>波动较大</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- Q&A Section -->
+        <section id="qa" class="scroll-reveal">
+            <h2><span class="icon">❓</span>常见问题与解答</h2>
+
+            <div class="qa-container">
+                <div class="qa-item" onclick="toggleQA(this)">
+                    <div class="qa-header">
+                        <span class="qa-number">1</span>
+                        <span class="qa-title">npm run node 报错 `EACCES: permission denied 127.0.0.1:8545`</span>
+                        <span class="qa-toggle">▼</span>
+                    </div>
+                    <div class="qa-content">
+                        <p><strong>问题描述：</strong>Windows 系统运行 <code>npm run node</code> 启动 Hardhat 节点时，报错端口权限被拒绝。</p>
+                        <p><strong>原因分析：</strong>端口 8545 被 Windows 系统保留或已被其他程序占用。</p>
+
+                        <div class="alert-box tip">
+                            <div class="alert-box-title">解决方案</div>
+                            <ol style="margin-top: 10px;">
+                                <li>检查端口占用：<code>netstat -ano | findstr :8545</code></li>
+                                <li>更换 Hardhat 端口：<code>npx hardhat node --port 8546</code></li>
+                                <li>重启 winnat 服务（以管理员身份运行 PowerShell）：
+                                    <div class="code-block" style="margin-top: 10px;">
+                                        <pre style="padding: 12px;"><code>net stop winnat
+net start winnat</code></pre>
+                                    </div>
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qa-item" onclick="toggleQA(this)">
+                    <div class="qa-header">
+                        <span class="qa-number">2</span>
+                        <span class="qa-title">`mapping(address => bool)` 是什么意思？如何使用？</span>
+                        <span class="qa-toggle">▼</span>
+                    </div>
+                    <div class="qa-content">
+                        <p><code>mapping</code> 是 Solidity 中的键值对存储结构，语法为 <code>mapping(KeyType => ValueType)</code>。</p>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">solidity</span>
+                            </div>
+                            <pre><code><span class="comment">// 定义：地址 → 布尔值的映射</span>
+<span class="type">mapping</span>(<span class="type">address</span> => <span class="type">bool</span>) <span class="keyword">public</span> isMember;
+
+<span class="comment">// 含义解释：</span>
+<span class="comment">// - KeyType: address（键，用于查询）</span>
+<span class="comment">// - ValueType: bool（值，存储的数据）</span>
+<span class="comment">// - 整体含义：给定一个地址，查询它是否是成员（true/false）</span>
+
+<span class="comment">// 使用示例：</span>
+<span class="keyword">function</span> <span class="function">addMember</span>(<span class="type">address</span> _user) <span class="keyword">public</span> {
+    isMember[_user] = <span class="keyword">true</span>;  <span class="comment">// 设置键值对</span>
+}
+
+<span class="keyword">function</span> <span class="function">checkMember</span>(<span class="type">address</span> _user) <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+    <span class="keyword">return</span> isMember[_user];  <span class="comment">// 查询键对应的值</span>
+    <span class="comment">// 如果从未设置过，返回默认值 false</span>
+}</code></pre>
+                        </div>
+
+                        <div class="alert-box tip">
+                            <div class="alert-box-title">类比理解</div>
+                            <p>就像 Excel 表格：A列是地址，B列是布尔值；或者 Python 字典：<code>{"0x123...": true, "0x456...": false}</code></p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qa-item" onclick="toggleQA(this)">
+                    <div class="qa-header">
+                        <span class="qa-number">3</span>
+                        <span class="qa-title">address 和 address payable 的本质区别是什么？</span>
+                        <span class="qa-toggle">▼</span>
+                    </div>
+                    <div class="qa-content">
+                        <div class="alert-box info">
+                            <div class="alert-box-title">技术本质</div>
+                            <p>两者都是 20 字节的以太坊地址，区别在于<strong>编译器允许的操作</strong>不同。</p>
+                        </div>
+
+                        <div class="code-block">
+                            <div class="code-header">
+                                <span class="code-lang">solidity</span>
+                            </div>
+                            <pre><code><span class="comment">// address：只能查询，不能转账</span>
+<span class="type">address</span> normalAddr = <span class="number">0x123...</span>;
+normalAddr.balance;              <span class="comment">// ✅ 可以查询余额</span>
+<span class="comment">// normalAddr.transfer(1 ether); // ❌ 编译错误！普通地址不能转账</span>
+
+<span class="comment">// address payable：可以查询，也可以转账</span>
+<span class="type">address</span> <span class="keyword">payable</span> payableAddr = <span class="keyword">payable</span>(<span class="number">0x123...</span>);
+payableAddr.balance;             <span class="comment">// ✅ 可以查询余额</span>
+payableAddr.transfer(<span class="number">1</span> ether);   <span class="comment">// ✅ 可以转账</span></code></pre>
+                        </div>
+
+                        <div class="alert-box tip">
+                            <div class="alert-box-title">设计原因</div>
+                            <p>Solidity 设计者为了安全，强制开发者显式标记哪些地址是"可收款的"，防止意外转账。</p>
+                        </div>
+
+                        <h4>转换规则</h4>
+                        <div class="code-block">
+                            <pre style="padding: 16px;"><code><span class="comment">// address → address payable（需要显式转换）</span>
+<span class="type">address</span> <span class="keyword">payable</span> p = <span class="keyword">payable</span>(normalAddr);
+
+<span class="comment">// address payable → address（自动转换）</span>
+<span class="type">address</span> n = payableAddr;  <span class="comment">// 直接赋值即可</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qa-item" onclick="toggleQA(this)">
+                    <div class="qa-header">
+                        <span class="qa-number">4</span>
+                        <span class="qa-title">如何安全地接收和发送 ETH？</span>
+                        <span class="qa-toggle">▼</span>
+                    </div>
+                    <div class="qa-content">
+                        <h4>接收 ETH</h4>
+                        <div class="code-block">
+                            <pre style="padding: 16px;"><code><span class="comment">// 方式1：receive 回调函数</span>
+<span class="keyword">receive</span>() <span class="keyword">external</span> <span class="keyword">payable</span> {
+    balances[<span class="type">msg</span>.sender] += <span class="type">msg</span>.value;
+}
+
+<span class="comment">// 方式2：payable 函数</span>
+<span class="keyword">function</span> <span class="function">deposit</span>() <span class="keyword">external</span> <span class="keyword">payable</span> {
+    <span class="function">require</span>(<span class="type">msg</span>.value > <span class="number">0</span>, <span class="string">"Must send ETH"</span>);
+    balances[<span class="type">msg</span>.sender] += <span class="type">msg</span>.value;
+}</code></pre>
+                        </div>
+
+                        <h4>发送 ETH（安全模式）</h4>
+                        <div class="code-block">
+                            <pre style="padding: 16px;"><code><span class="keyword">function</span> <span class="function">withdraw</span>(<span class="type">uint256</span> _amount) <span class="keyword">public</span> {
+    <span class="comment">// 1. 检查</span>
+    <span class="function">require</span>(balances[<span class="type">msg</span>.sender] >= _amount, <span class="string">"Insufficient"</span>);
+
+    <span class="comment">// 2. 更新（先扣款！）</span>
+    balances[<span class="type">msg</span>.sender] -= _amount;
+
+    <span class="comment">// 3. 转账（后转账！）</span>
+    <span class="keyword">payable</span>(<span class="type">msg</span>.sender).transfer(_amount);
+}</code></pre>
+                        </div>
+
+                        <div class="alert-box warning">
+                            <div class="alert-box-title">为什么要"先扣款后转账"？</div>
+                            <p>防止<strong>"重入攻击"</strong>——恶意合约在收到 ETH 时自动再次调用 withdraw，如果先转账，余额还没扣，就可以多次取款。</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="qa-item" onclick="toggleQA(this)">
+                    <div class="qa-header">
+                        <span class="qa-number">5</span>
+                        <span class="qa-title">合约类型详解：如何引用其他合约？</span>
+                        <span class="qa-toggle">▼</span>
+                    </div>
+                    <div class="qa-content">
+                        <div class="code-block">
+                            <pre style="padding: 16px;"><code><span class="comment">// 步骤1：导入合约定义</span>
+<span class="keyword">import</span> <span class="string">"./SimpleToken.sol"</span>;
+
+<span class="comment">// 步骤2：声明合约类型变量</span>
+SimpleToken <span class="keyword">public</span> token;  <span class="comment">// token 是变量名，SimpleToken 是类型</span>
+
+<span class="comment">// 步骤3：通过地址设置引用</span>
+<span class="keyword">function</span> <span class="function">setToken</span>(<span class="type">address</span> _addr) <span class="keyword">public</span> {
+    token = <span class="function">SimpleToken</span>(_addr);  <span class="comment">// 地址 → 合约类型转换</span>
+}
+
+<span class="comment">// 步骤4：调用合约函数</span>
+<span class="keyword">function</span> <span class="function">getName</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">string</span> <span class="keyword">memory</span>) {
+    <span class="keyword">return</span> token.name();  <span class="comment">// 像调用本地函数一样</span>
+}</code></pre>
+                        </div>
+
+                        <div class="alert-box tip">
+                            <div class="alert-box-title">核心理解</div>
+                            <ul style="margin-top: 10px;">
+                                <li><code>SimpleToken</code> = 合约的"设计图纸"（类型）</li>
+                                <li><code>token</code> = 具体的"房子实例"（变量）</li>
+                                <li><code>SimpleToken(_addr)</code> = 告诉编译器"这个地址上是 SimpleToken"</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Templates -->
+        <section id="templates" class="scroll-reveal">
+            <h2><span class="icon">📋</span>完整代码模板</h2>
+
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-title">模板1：完整的 Ownable 权限控制合约</div>
+                    <div class="template-desc">提供基本的权限控制功能，只有一个 owner 可以执行敏感操作</div>
+                </div>
+                <div class="template-body">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">solidity</span>
+                            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                        </div>
+                        <pre><code><span class="comment">// SPDX-License-Identifier: MIT</span>
+<span class="keyword">pragma solidity</span> ^0.8.24;
+
+<span class="keyword">contract</span> <span class="function">Ownable</span> {
+    <span class="type">address</span> <span class="keyword">private</span> _owner;
+
+    <span class="keyword">event</span> <span class="function">OwnershipTransferred</span>(
+        <span class="type">address</span> <span class="keyword">indexed</span> previousOwner,
+        <span class="type">address</span> <span class="keyword">indexed</span> newOwner
+    );
+
+    <span class="keyword">modifier</span> <span class="function">onlyOwner</span>() {
+        <span class="function">require</span>(<span class="type">msg</span>.sender == _owner, <span class="string">"Ownable: caller is not the owner"</span>);
+        _;
+    }
+
+    <span class="keyword">constructor</span>() {
+        _owner = <span class="type">msg</span>.sender;
+        <span class="keyword">emit</span> <span class="function">OwnershipTransferred</span>(<span class="keyword">address</span>(<span class="number">0</span>), <span class="type">msg</span>.sender);
+    }
+
+    <span class="keyword">function</span> <span class="function">owner</span>() <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">address</span>) {
+        <span class="keyword">return</span> _owner;
+    }
+
+    <span class="keyword">function</span> <span class="function">transferOwnership</span>(<span class="type">address</span> newOwner) <span class="keyword">public</span> onlyOwner {
+        <span class="function">require</span>(newOwner != <span class="keyword">address</span>(<span class="number">0</span>), <span class="string">"Ownable: new owner is the zero address"</span>);
+
+        <span class="type">address</span> oldOwner = _owner;
+        _owner = newOwner;
+
+        <span class="keyword">emit</span> <span class="function">OwnershipTransferred</span>(oldOwner, newOwner);
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-title">模板2：安全的 ETH 存取合约</div>
+                    <div class="template-desc">使用 Checks-Effects-Interactions 模式，防止重入攻击</div>
+                </div>
+                <div class="template-body">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">solidity</span>
+                            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                        </div>
+                        <pre><code><span class="keyword">contract</span> <span class="function">ETHBank</span> {
+    <span class="type">mapping</span>(<span class="type">address</span> => <span class="type">uint256</span>) <span class="keyword">private</span> _balances;
+    <span class="type">bool</span> <span class="keyword">private</span> _locked;
+
+    <span class="keyword">event</span> <span class="function">Deposit</span>(<span class="type">address</span> <span class="keyword">indexed</span> account, <span class="type">uint256</span> amount);
+    <span class="keyword">event</span> <span class="function">Withdrawal</span>(<span class="type">address</span> <span class="keyword">indexed</span> account, <span class="type">uint256</span> amount);
+
+    <span class="keyword">modifier</span> <span class="function">nonReentrant</span>() {
+        <span class="function">require</span>(!_locked, <span class="string">"Reentrant call"</span>);
+        _locked = <span class="keyword">true</span>;
+        _;
+        _locked = <span class="keyword">false</span>;
+    }
+
+    <span class="keyword">receive</span>() <span class="keyword">external</span> <span class="keyword">payable</span> {
+        _deposit();
+    }
+
+    <span class="keyword">function</span> <span class="function">deposit</span>() <span class="keyword">external</span> <span class="keyword">payable</span> {
+        _deposit();
+    }
+
+    <span class="keyword">function</span> <span class="function">_deposit</span>() <span class="keyword">internal</span> {
+        <span class="function">require</span>(<span class="type">msg</span>.value > <span class="number">0</span>, <span class="string">"Must send ETH"</span>);
+        _balances[<span class="type">msg</span>.sender] += <span class="type">msg</span>.value;
+        <span class="keyword">emit</span> <span class="function">Deposit</span>(<span class="type">msg</span>.sender, <span class="type">msg</span>.value);
+    }
+
+    <span class="keyword">function</span> <span class="function">withdraw</span>(<span class="type">uint256</span> amount) <span class="keyword">external</span> nonReentrant {
+        <span class="comment">// Checks</span>
+        <span class="function">require</span>(amount > <span class="number">0</span>, <span class="string">"Amount must be positive"</span>);
+        <span class="function">require</span>(_balances[<span class="type">msg</span>.sender] >= amount, <span class="string">"Insufficient balance"</span>);
+
+        <span class="comment">// Effects（先扣减）</span>
+        _balances[<span class="type">msg</span>.sender] -= amount;
+
+        <span class="comment">// Interactions（后转账）</span>
+        (<span class="type">bool</span> success, ) = <span class="keyword">payable</span>(<span class="type">msg</span>.sender).call{value: amount}(<span class="string">""</span>);
+        <span class="function">require</span>(success, <span class="string">"Transfer failed"</span>);
+
+        <span class="keyword">emit</span> <span class="function">Withdrawal</span>(<span class="type">msg</span>.sender, amount);
+    }
+
+    <span class="keyword">function</span> <span class="function">balanceOf</span>(<span class="type">address</span> account) <span class="keyword">public</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>) {
+        <span class="keyword">return</span> _balances[account];
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="template-card">
+                <div class="template-header">
+                    <div class="template-title">模板3：合约交互 - TokenManager</div>
+                    <div class="template-desc">管理代币合约引用，展示如何调用其他合约的函数</div>
+                </div>
+                <div class="template-body">
+                    <div class="code-block">
+                        <div class="code-header">
+                            <span class="code-lang">solidity</span>
+                            <button class="copy-btn" onclick="copyCode(this)">📋 复制</button>
+                        </div>
+                        <pre><code><span class="keyword">interface</span> <span class="function">IERC20</span> {
+    <span class="keyword">function</span> <span class="function">name</span>() <span class="keyword">external</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">string</span> <span class="keyword">memory</span>);
+    <span class="keyword">function</span> <span class="function">symbol</span>() <span class="keyword">external</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">string</span> <span class="keyword">memory</span>);
+    <span class="keyword">function</span> <span class="function">totalSupply</span>() <span class="keyword">external</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>);
+    <span class="keyword">function</span> <span class="function">balanceOf</span>(<span class="type">address</span> account) <span class="keyword">external</span> <span class="keyword">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>);
+    <span class="keyword">function</span> <span class="function">transfer</span>(<span class="type">address</span> to, <span class="type">uint256</span> amount) <span class="keyword">external</span> <span class="keyword">returns</span> (<span class="type">bool</span>);
+    <span class="keyword">function</span> <span class="function">transferFrom</span>(<span class="type">address</span> from, <span class="type">address</span> to, <span class="type">uint256</span> amount) <span class="keyword">external</span> <span class="keyword">returns</span> (<span class="type">bool</span>);
+}
+
+<span class="keyword">contract</span> <span class="function">TokenManager</span> {
+    IERC20 <span class="keyword">public</span> token;
+    <span class="type">address</span> <span class="keyword">public</span> tokenAddress;
+
+    <span class="keyword">event</span> <span class="function">TokenSet</span>(<span class="type">address</span> <span class="keyword">indexed</span> tokenAddress);
+
+    <span class="keyword">function</span> <span class="function">setToken</span>(<span class="type">address</span> _tokenAddress) <span class="keyword">external</span> {
+        <span class="function">require</span>(_tokenAddress != <span class="keyword">address</span>(<span class="number">0</span>), <span class="string">"Invalid token address"</span>);
+
+        <span class="comment">// 地址 → 合约类型转换</span>
+        token = <span class="function">IERC20</span>(_tokenAddress);
+        tokenAddress = _tokenAddress;
+
+        <span class="keyword">emit</span> <span class="function">TokenSet</span>(_tokenAddress);
+    }
+
+    <span class="keyword">modifier</span> <span class="function">tokenSet</span>() {
+        <span class="function">require</span>(tokenAddress != <span class="keyword">address</span>(<span class="number">0</span>), <span class="string">"Token not set"</span>);
+        _;
+    }
+
+    <span class="keyword">function</span> <span class="function">getTokenName</span>() <span class="keyword">external</span> <span class="keyword">view</span> tokenSet <span class="keyword">returns</span> (<span class="type">string</span> <span class="keyword">memory</span>) {
+        <span class="keyword">return</span> token.name();
+    }
+
+    <span class="keyword">function</span> <span class="function">getTokenBalance</span>(<span class="type">address</span> account)
+        <span class="keyword">external</span>
+        <span class="keyword">view</span>
+        tokenSet
+        <span class="keyword">returns</span> (<span class="type">uint256</span>)
+    {
+        <span class="keyword">return</span> token.balanceOf(account);
+    }
+}</code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Errors -->
+        <section id="errors" class="scroll-reveal">
+            <h2><span class="icon">⚠️</span>常见错误与解决方案</h2>
+
+            <div class="table-container">
+                <table>
+                    <tr>
+                        <th style="width: 30%;">错误信息</th>
+                        <th style="width: 35%;">原因</th>
+                        <th style="width: 35%;">解决方案</th>
+                    </tr>
+                    <tr>
+                        <td><code>EACCES: permission denied</code></td>
+                        <td>Windows 端口占用</td>
+                        <td>更换端口或重启 winnat 服务</td>
+                    </tr>
+                    <tr>
+                        <td><code>Function is not payable</code></td>
+                        <td>函数未标记 payable 但接收了 ETH</td>
+                        <td>添加 <code>payable</code> 关键字</td>
+                    </tr>
+                    <tr>
+                        <td><code>Invalid address</code></td>
+                        <td>使用了 address(0)</td>
+                        <td>检查 <code>require(_addr != address(0))</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>transfer not available</code></td>
+                        <td>普通 address 调用 transfer</td>
+                        <td>转换为 payable：<code>payable(addr).transfer()</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>Member "name" not found</code></td>
+                        <td>合约类型不匹配</td>
+                        <td>确认导入的合约接口正确</td>
+                    </tr>
+                    <tr>
+                        <td><code>Reentrant call</code></td>
+                        <td>重入攻击被阻止</td>
+                        <td>使用 CEI 模式或非重入修饰符</td>
+                    </tr>
+                    <tr>
+                        <td><code>Insufficient balance</code></td>
+                        <td>余额不足</td>
+                        <td>检查余额和授权额度</td>
+                    </tr>
+                </table>
+            </div>
+        </section>
+
+        <!-- Security -->
+        <section id="security" class="scroll-reveal">
+            <h2><span class="icon">🛡️</span>安全最佳实践</h2>
+
+            <div class="practice-grid">
+                <div class="practice-box good">
+                    <h4>✅ 应该做的</h4>
+                    <div class="code-block" style="margin-top: 12px; border: none;">
+                        <pre style="padding: 16px;"><code><span class="comment">// 1. 使用 msg.sender 做权限控制</span>
+<span class="function">require</span>(<span class="type">msg</span>.sender == owner);
+
+<span class="comment">// 2. 检查零地址</span>
+<span class="function">require</span>(_addr != <span class="keyword">address</span>(<span class="number">0</span>));
+
+<span class="comment">// 3. Checks-Effects-Interactions</span>
+<span class="keyword">function</span> <span class="function">withdraw</span>(<span class="type">uint256</span> amount) <span class="keyword">public</span> {
+    <span class="function">require</span>(balances[<span class="type">msg</span>.sender] >= amount); <span class="comment">// Checks</span>
+    balances[<span class="type">msg</span>.sender] -= amount;         <span class="comment">// Effects</span>
+    <span class="keyword">payable</span>(<span class="type">msg</span>.sender).transfer(amount);      <span class="comment">// Interactions</span>
+}
+
+<span class="comment">// 4. 使用 transfer 或带保护的 call</span>
+<span class="keyword">payable</span>(addr).transfer(amount);</code></pre>
+                    </div>
+                </div>
+                <div class="practice-box bad">
+                    <h4>❌ 不应该做的</h4>
+                    <div class="code-block" style="margin-top: 12px; border: none;">
+                        <pre style="padding: 16px;"><code><span class="comment">// 1. 不要用 tx.origin</span>
+<span class="function">require</span>(<span class="type">tx</span>.origin == owner);  <span class="comment">// 危险！</span>
+
+<span class="comment">// 2. 不要先转账后更新</span>
+<span class="keyword">payable</span>(<span class="type">msg</span>.sender).transfer(amount);  <span class="comment">// ❌</span>
+balances[<span class="type">msg</span>.sender] -= amount;          <span class="comment">// 可能被重入</span>
+
+<span class="comment">// 3. 不要用 block.timestamp 做随机</span>
+<span class="type">uint256</span> random = <span class="type">block</span>.timestamp % <span class="number">10</span>;  <span class="comment">// 可被操控</span>
+
+<span class="comment">// 4. 不要忽略 send 的返回值</span>
+someAddress.send(amount);  <span class="comment">// 可能失败但继续执行</span></code></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <a href="#" class="back-to-top" onclick="scrollToTop(); return false;">
+            ↑ 返回顶部
+        </a>
+        <p style="margin-top: 24px; font-size: 16px;">继续加油！下一站：<strong>Day05 枚举与自定义值类型</strong> 🚀</p>
+    </footer>
+
+    <script>
+        // Progress Bar
+        window.addEventListener('scroll', () => {
+            const scrollTop = document.documentElement.scrollTop || document.body.scrollTop;
+            const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+            const scrolled = (scrollTop / scrollHeight) * 100;
+            document.getElementById('progressBar').style.width = scrolled + '%';
+        });
+
+        // Navigation
+        function scrollToSection(id) {
+            const element = document.getElementById(id);
+            if (element) {
+                const offset = 100;
+                const bodyRect = document.body.getBoundingClientRect().top;
+                const elementRect = element.getBoundingClientRect().top;
+                const elementPosition = elementRect - bodyRect;
+                const offsetPosition = elementPosition - offset;
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+
+                // Update active tab
+                document.querySelectorAll('.nav-tab').forEach(tab => {
+                    tab.classList.remove('active');
+                });
+                event.target.classList.add('active');
+            }
+        }
+
+        // Q&A Toggle
+        function toggleQA(element) {
+            element.classList.toggle('active');
+        }
+
+        // Tab Switching
+        function switchTab(event, tabId) {
+            // Update buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(tabId).classList.add('active');
+        }
+
+        // Copy Code
+        function copyCode(button) {
+            const codeBlock = button.closest('.code-block').querySelector('pre');
+            const code = codeBlock.innerText;
+
+            navigator.clipboard.writeText(code).then(() => {
+                button.textContent = '✅ 已复制';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = '📋 复制';
+                    button.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        // Scroll to Top
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
+        // Scroll Reveal Animation
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.scroll-reveal').forEach(el => {
+            observer.observe(el);
+        });
+
+        // Update active nav on scroll
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('section[id]');
+            const scrollPos = window.scrollY + 150;
+
+            sections.forEach(section => {
+                const top = section.offsetTop;
+                const height = section.offsetHeight;
+                const id = section.getAttribute('id');
+
+                if (scrollPos >= top && scrollPos < top + height) {
+                    document.querySelectorAll('.nav-tab').forEach(tab => {
+                        tab.classList.remove('active');
+                        if (tab.getAttribute('onclick')?.includes(id)) {
+                            tab.classList.add('active');
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>

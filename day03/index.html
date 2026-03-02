@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solidity Day 3 - 变量与可见性</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        .code-font {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .slide {
+            min-height: 100vh;
+            display: flex;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #1e3a5f 0%, #0d2137 50%, #1a365d 100%);
+        }
+        .card-glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .syntax-keyword { color: #c792ea; }
+        .syntax-type { color: #82aaff; }
+        .syntax-function { color: #82aaff; }
+        .syntax-variable { color: #f78c6c; }
+        .syntax-string { color: #c3e88d; }
+        .syntax-comment { color: #676e95; }
+        .syntax-number { color: #f78c6c; }
+
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        .nav-dot {
+            transition: all 0.3s ease;
+        }
+        .nav-dot.active {
+            background: #60a5fa;
+            transform: scale(1.3);
+        }
+
+        .tab-active {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .visibility-card {
+            transition: all 0.3s ease;
+        }
+        .visibility-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        /* 确保 x-show 隐藏的元素真的隐藏 */
+        [x-show="false"] {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="gradient-bg text-white overflow-hidden" x-data="slideApp()">
+
+    <!-- 导航点 -->
+    <div class="fixed right-8 top-1/2 transform -translate-y-1/2 z-50 space-y-4">
+        <template x-for="(_, index) in slides" :key="index">
+            <button
+                @click="goToSlide(index)"
+                class="nav-dot w-3 h-3 rounded-full bg-white/30 block"
+                :class="{ 'active': currentSlide === index }"
+            ></button>
+        </template>
+    </div>
+
+    <!-- 键盘导航提示 -->
+    <div class="fixed bottom-8 left-1/2 transform -translate-x-1/2 text-white/50 text-sm z-50 flex items-center space-x-4">
+        <span>← 上一页</span>
+        <span class="w-px h-4 bg-white/30"></span>
+        <span>下一页 →</span>
+        <span class="w-px h-4 bg-white/30"></span>
+        <span>点击卡片查看详情</span>
+    </div>
+
+    <!-- Slide 1: 封面 -->
+    <div class="slide items-center justify-center" x-show="currentSlide === 0" x-transition.opacity.duration.500ms>
+        <div class="text-center px-8 animate-fade-in-up">
+            <div class="mb-6">
+                <span class="text-6xl">🎓</span>
+            </div>
+            <h1 class="text-5xl md:text-7xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                Solidity Day 3
+            </h1>
+            <p class="text-2xl md:text-3xl text-blue-200 mb-8">变量与可见性</p>
+            <div class="flex justify-center space-x-8 text-sm text-white/60">
+                <span class="flex items-center"><span class="w-2 h-2 bg-blue-400 rounded-full mr-2"></span>bool / uint / int</span>
+                <span class="flex items-center"><span class="w-2 h-2 bg-purple-400 rounded-full mr-2"></span>可见性修饰符</span>
+                <span class="flex items-center"><span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span>constant / immutable</span>
+            </div>
+            <button @click="nextSlide()" class="mt-12 px-8 py-3 bg-blue-500 hover:bg-blue-600 rounded-full transition-all transform hover:scale-105">
+                开始学习 →
+            </button>
+        </div>
+    </div>
+
+    <!-- Slide 2: 目录 -->
+    <div class="slide items-center justify-center" x-show="currentSlide === 1" x-transition.opacity.duration.500ms>
+        <div class="max-w-4xl w-full px-8">
+            <h2 class="text-4xl font-bold mb-12 text-center">📋 今日学习内容</h2>
+            <div class="grid grid-cols-2 gap-6">
+                <div class="card-glass rounded-2xl p-6 hover:bg-white/10 transition-all cursor-pointer" @click="goToSlide(2)">
+                    <div class="text-3xl mb-3">🔤</div>
+                    <h3 class="text-xl font-bold mb-2">变量类型</h3>
+                    <p class="text-white/60 text-sm">bool, uint8-uint256, int8-int256</p>
+                </div>
+                <div class="card-glass rounded-2xl p-6 hover:bg-white/10 transition-all cursor-pointer" @click="goToSlide(4)">
+                    <div class="text-3xl mb-3">👁️</div>
+                    <h3 class="text-xl font-bold mb-2">可见性修饰符</h3>
+                    <p class="text-white/60 text-sm">public, private, internal, external</p>
+                </div>
+                <div class="card-glass rounded-2xl p-6 hover:bg-white/10 transition-all cursor-pointer" @click="goToSlide(5)">
+                    <div class="text-3xl mb-3">🔒</div>
+                    <h3 class="text-xl font-bold mb-2">常量与不可变变量</h3>
+                    <p class="text-white/60 text-sm">constant vs immutable</p>
+                </div>
+                <div class="card-glass rounded-2xl p-6 hover:bg-white/10 transition-all cursor-pointer" @click="goToSlide(6)">
+                    <div class="text-3xl mb-3">✅</div>
+                    <h3 class="text-xl font-bold mb-2">条件检查</h3>
+                    <p class="text-white/60 text-sm">require 与构造函数</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 3: 布尔类型 -->
+    <div class="slide items-center justify-center" x-show="currentSlide === 2" x-transition.opacity.duration.500ms>
+        <div class="max-w-5xl w-full px-8">
+            <h2 class="text-4xl font-bold mb-8">🔤 布尔类型 (bool)</h2>
+            <div class="grid grid-cols-2 gap-8">
+                <div class="space-y-4">
+                    <div class="card-glass rounded-xl p-6">
+                        <h3 class="text-xl font-bold mb-4 text-blue-300">基本声明</h3>
+                        <pre class="code-font text-sm bg-black/30 p-4 rounded-lg overflow-x-auto"><code><span class="syntax-type">bool</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">isActive</span> = <span class="syntax-keyword">true</span>;
+<span class="syntax-type">bool</span> <span class="syntax-keyword">private</span> <span class="syntax-variable">isLocked</span> = <span class="syntax-keyword">false</span>;
+<span class="syntax-type">bool</span> <span class="syntax-keyword">internal</span> <span class="syntax-variable">isPaused</span> = <span class="syntax-keyword">false</span>;</code></pre>
+                    </div>
+                    <div class="card-glass rounded-xl p-6">
+                        <h3 class="text-xl font-bold mb-4 text-green-300">关键点</h3>
+                        <ul class="space-y-2 text-white/80">
+                            <li class="flex items-start"><span class="text-green-400 mr-2">✓</span>只有 true 和 false 两个值</li>
+                            <li class="flex items-start"><span class="text-green-400 mr-2">✓</span>默认值为 false</li>
+                            <li class="flex items-start"><span class="text-red-400 mr-2">✗</span>没有 JavaScript 的 truthy/falsy</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-purple-300">对比：Solidity vs JavaScript</h3>
+                    <div class="space-y-4">
+                        <div class="bg-red-500/20 border border-red-500/30 rounded-lg p-4">
+                            <p class="text-sm text-red-300 mb-2">❌ JavaScript (动态类型)</p>
+                            <pre class="code-font text-xs bg-black/30 p-2 rounded"><code><span class="syntax-comment">// 这些在 Solidity 中都不行！</span>
+<span class="syntax-keyword">let</span> a = <span class="syntax-keyword">true</span>;
+<span class="syntax-keyword">let</span> b = <span class="syntax-number">1</span>;      <span class="syntax-comment">// truthy</span>
+<span class="syntax-keyword">let</span> c = <span class="syntax-string">"hello"</span>; <span class="syntax-comment">// truthy</span>
+<span class="syntax-keyword">let</span> d = <span class="syntax-number">0</span>;      <span class="syntax-comment">// falsy</span></code></pre>
+                        </div>
+                        <div class="bg-green-500/20 border border-green-500/30 rounded-lg p-4">
+                            <p class="text-sm text-green-300 mb-2">✅ Solidity (静态类型)</p>
+                            <pre class="code-font text-xs bg-black/30 p-2 rounded"><code><span class="syntax-type">bool</span> a = <span class="syntax-keyword">true</span>;
+<span class="syntax-type">bool</span> b = <span class="syntax-number">1</span>;     <span class="syntax-comment">// ❌ 编译错误！</span>
+<span class="syntax-type">bool</span> c = <span class="syntax-number">0</span>;     <span class="syntax-comment">// ❌ 编译错误！</span>
+<span class="syntax-comment">// 只能是 true 或 false</span></code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 4: 整型类型 -->
+    <div class="slide items-center justify-center" x-show="currentSlide === 3" x-transition.opacity.duration.500ms>
+        <div class="max-w-6xl w-full px-8" x-data="{ activeTab: 'uint' }">
+            <h2 class="text-4xl font-bold mb-8">🔢 整型类型</h2>
+
+            <!-- 标签切换 -->
+            <div class="flex space-x-4 mb-6">
+                <button @click="activeTab = 'uint'" :class="{ 'tab-active': activeTab === 'uint' }" class="px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all">
+                    uint (无符号)
+                </button>
+                <button @click="activeTab = 'int'" :class="{ 'tab-active': activeTab === 'int' }" class="px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all">
+                    int (有符号)
+                </button>
+                <button @click="activeTab = 'range'" :class="{ 'tab-active': activeTab === 'range' }" class="px-6 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-all">
+                    范围查询
+                </button>
+            </div>
+
+            <!-- uint 内容 -->
+            <div x-show="activeTab === 'uint'" class="grid grid-cols-2 gap-6" x-transition>
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-blue-300">声明示例</h3>
+                    <pre class="code-font text-sm bg-black/30 p-4 rounded-lg"><code><span class="syntax-type">uint8</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">smallNumber</span> = <span class="syntax-number">100</span>;     <span class="syntax-comment">// 0 ~ 255</span>
+<span class="syntax-type">uint256</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">largeNumber</span> = <span class="syntax-number">1000000</span>; <span class="syntax-comment">// 超大范围</span>
+<span class="syntax-type">uint</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">defaultUint</span> = <span class="syntax-number">42</span>;        <span class="syntax-comment">// uint = uint256</span></code></pre>
+                    <div class="mt-4 p-4 bg-blue-500/20 rounded-lg">
+                        <p class="text-sm text-blue-200">💡 <strong>提示：</strong>uint 是 uint256 的简写</p>
+                    </div>
+                </div>
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-green-300">类型范围</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                            <span class="code-font text-blue-300">uint8</span>
+                            <span class="text-sm">0 ~ 255</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                            <span class="code-font text-blue-300">uint16</span>
+                            <span class="text-sm">0 ~ 65,535</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                            <span class="code-font text-blue-300">uint32</span>
+                            <span class="text-sm">0 ~ 4,294,967,295</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                            <span class="code-font text-blue-300">uint256</span>
+                            <span class="text-sm">0 ~ 2²⁵⁶-1</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- int 内容 -->
+            <div x-show="activeTab === 'int'" class="grid grid-cols-2 gap-6" x-transition>
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-purple-300">声明示例</h3>
+                    <pre class="code-font text-sm bg-black/30 p-4 rounded-lg"><code><span class="syntax-type">int8</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">smallInt</span> = -<span class="syntax-number">50</span>;       <span class="syntax-comment">// -128 ~ 127</span>
+<span class="syntax-type">int256</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">largeInt</span> = -<span class="syntax-number">1000000</span>; <span class="syntax-comment">// 大范围有符号</span>
+<span class="syntax-type">int</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">defaultInt</span> = -<span class="syntax-number">42</span>;      <span class="syntax-comment">// int = int256</span></code></pre>
+                </div>
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-green-300">类型范围</h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                            <span class="code-font text-purple-300">int8</span>
+                            <span class="text-sm">-128 ~ 127</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                            <span class="code-font text-purple-300">int16</span>
+                            <span class="text-sm">-32,768 ~ 32,767</span>
+                        </div>
+                        <div class="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                            <span class="code-font text-purple-300">int256</span>
+                            <span class="text-sm">-2²⁵⁵ ~ 2²⁵⁵-1</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-purple-500/20 rounded-lg">
+                        <p class="text-sm text-purple-200">💡 <strong>注意：</strong>int 可以表示负数</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 范围查询 -->
+            <div x-show="activeTab === 'range'" class="card-glass rounded-xl p-8" x-transition>
+                <h3 class="text-xl font-bold mb-6 text-yellow-300">使用 type(X).max / type(X).min 获取边界值</h3>
+                <div class="grid grid-cols-2 gap-6">
+                    <pre class="code-font text-sm bg-black/30 p-4 rounded-lg"><code><span class="syntax-type">int256</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">int256Max</span> = <span class="syntax-function">type</span>(<span class="syntax-type">int256</span>).<span class="syntax-variable">max</span>;
+<span class="syntax-type">int256</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">int256Min</span> = <span class="syntax-function">type</span>(<span class="syntax-type">int256</span>).<span class="syntax-variable">min</span>;
+<span class="syntax-type">uint256</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">uint256Max</span> = <span class="syntax-function">type</span>(<span class="syntax-type">uint256</span>).<span class="syntax-variable">max</span>;</code></pre>
+                    <div class="space-y-3 text-sm">
+                        <div class="p-3 bg-yellow-500/20 rounded-lg">
+                            <span class="code-font text-yellow-300">type(int256).max</span>
+                            <p class="text-white/60 mt-1">= 2²⁵⁵ - 1</p>
+                        </div>
+                        <div class="p-3 bg-yellow-500/20 rounded-lg">
+                            <span class="code-font text-yellow-300">type(int256).min</span>
+                            <p class="text-white/60 mt-1">= -2²⁵⁵</p>
+                        </div>
+                        <div class="p-3 bg-yellow-500/20 rounded-lg">
+                            <span class="code-font text-yellow-300">type(uint256).max</span>
+                            <p class="text-white/60 mt-1">= 2²⁵⁶ - 1</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 5: 可见性修饰符 -->
+    <div class="slide items-center justify-center" x-show="currentSlide === 4" x-transition.opacity.duration.500ms>
+        <div class="max-w-6xl w-full px-8">
+            <h2 class="text-4xl font-bold mb-8 text-center">👁️ 可见性修饰符</h2>
+
+            <!-- 变量可见性 -->
+            <div class="mb-8">
+                <h3 class="text-2xl font-bold mb-4 text-blue-300">变量可见性（3种）</h3>
+                <div class="grid grid-cols-3 gap-4">
+                    <div class="visibility-card card-glass rounded-xl p-6 border-l-4 border-green-400">
+                        <div class="flex items-center mb-3">
+                            <span class="text-2xl mr-3">🌐</span>
+                            <span class="code-font text-lg text-green-400">public</span>
+                        </div>
+                        <p class="text-white/70 text-sm mb-3">全部可见</p>
+                        <ul class="text-xs text-white/60 space-y-1">
+                            <li>✓ 自动生成 getter</li>
+                            <li>✓ 合约内外可访问</li>
+                            <li>✓ 外部可直接读取</li>
+                        </ul>
+                    </div>
+                    <div class="visibility-card card-glass rounded-xl p-6 border-l-4 border-yellow-400">
+                        <div class="flex items-center mb-3">
+                            <span class="text-2xl mr-3">🔒</span>
+                            <span class="code-font text-lg text-yellow-400">internal</span>
+                        </div>
+                        <p class="text-white/70 text-sm mb-3">本合约 + 继承合约</p>
+                        <ul class="text-xs text-white/60 space-y-1">
+                            <li>✓ 默认可见性</li>
+                            <li>✓ 子合约可访问</li>
+                            <li>✗ 外部不可访问</li>
+                        </ul>
+                    </div>
+                    <div class="visibility-card card-glass rounded-xl p-6 border-l-4 border-red-400">
+                        <div class="flex items-center mb-3">
+                            <span class="text-2xl mr-3">🔐</span>
+                            <span class="code-font text-lg text-red-400">private</span>
+                        </div>
+                        <p class="text-white/70 text-sm mb-3">仅本合约</p>
+                        <ul class="text-xs text-white/60 space-y-1">
+                            <li>✓ 仅当前合约可见</li>
+                            <li>✗ 子合约不可访问</li>
+                            <li>✗ 外部不可访问</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 函数可见性 -->
+            <div>
+                <h3 class="text-2xl font-bold mb-4 text-purple-300">函数可见性（4种）</h3>
+                <div class="grid grid-cols-4 gap-4">
+                    <div class="visibility-card card-glass rounded-xl p-5 border-t-4 border-green-400">
+                        <span class="code-font text-green-400">public</span>
+                        <p class="text-xs text-white/60 mt-2">内外都可调用</p>
+                    </div>
+                    <div class="visibility-card card-glass rounded-xl p-5 border-t-4 border-blue-400">
+                        <span class="code-font text-blue-400">external</span>
+                        <p class="text-xs text-white/60 mt-2">仅外部可调用（更省 gas）</p>
+                    </div>
+                    <div class="visibility-card card-glass rounded-xl p-5 border-t-4 border-yellow-400">
+                        <span class="code-font text-yellow-400">internal</span>
+                        <p class="text-xs text-white/60 mt-2">内部 + 继承调用</p>
+                    </div>
+                    <div class="visibility-card card-glass rounded-xl p-5 border-t-4 border-red-400">
+                        <span class="code-font text-red-400">private</span>
+                        <p class="text-xs text-white/60 mt-2">仅内部调用</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 代码示例 -->
+            <div class="mt-6 card-glass rounded-xl p-6">
+                <pre class="code-font text-sm bg-black/30 p-4 rounded-lg"><code><span class="syntax-type">uint256</span> <span class="syntax-keyword">public</span> <span class="syntax-variable">publicVar</span> = <span class="syntax-number">100</span>;     <span class="syntax-comment">// 外部可访问，有 getter</span>
+<span class="syntax-type">uint256</span> <span class="syntax-keyword">internal</span> <span class="syntax-variable">internalVar</span> = <span class="syntax-number">200</span>; <span class="syntax-comment">// 本合约+子合约可用</span>
+<span class="syntax-type">uint256</span> <span class="syntax-keyword">private</span> <span class="syntax-variable">privateVar</span> = <span class="syntax-number">300</span>;   <span class="syntax-comment">// 仅本合约能用</span>
+
+<span class="syntax-keyword">function</span> <span class="syntax-function">externalFunc</span>() <span class="syntax-keyword">external</span> {}  <span class="syntax-comment">// 只能外部调，更省 gas</span>
+<span class="syntax-keyword">function</span> <span class="syntax-function">publicFunc</span>() <span class="syntax-keyword">public</span> {}      <span class="syntax-comment">// 内外都能调</span></code></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 6: constant vs immutable -->
+    <div class="slide items-center justify-center" x-show="currentSlide === 5" x-transition.opacity.duration.500ms>
+        <div class="max-w-5xl w-full px-8" x-data="{ showDiff: false }">
+            <h2 class="text-4xl font-bold mb-8 text-center">🔒 常量与不可变变量</h2>
+
+            <div class="grid grid-cols-2 gap-6 mb-8">
+                <!-- constant -->
+                <div class="card-glass rounded-xl p-6 border-2 border-blue-500/30">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-3">📌</span>
+                        <h3 class="text-2xl font-bold text-blue-400">constant</h3>
+                    </div>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-center">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                            <span>编译时确定，写死在代码中</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                            <span>不占用存储槽位（gas 几乎为 0）</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-2 h-2 bg-red-400 rounded-full mr-2"></span>
+                            <span>声明时必须赋值</span>
+                        </div>
+                    </div>
+                    <pre class="code-font text-xs bg-black/30 p-3 rounded-lg mt-4"><code><span class="syntax-type">uint256</span> <span class="syntax-keyword">public</span> <span class="syntax-keyword">constant</span> <span class="syntax-variable">MAX_VALUE</span> = <span class="syntax-number">1000000</span>;</code></pre>
+                </div>
+
+                <!-- immutable -->
+                <div class="card-glass rounded-xl p-6 border-2 border-purple-500/30">
+                    <div class="flex items-center mb-4">
+                        <span class="text-3xl mr-3">🛡️</span>
+                        <h3 class="text-2xl font-bold text-purple-400">immutable</h3>
+                    </div>
+                    <div class="space-y-3 text-sm">
+                        <div class="flex items-center">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                            <span>构造函数中设置，部署时确定</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                            <span>不占用存储槽位（较省 gas）</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></span>
+                            <span>部署后不可更改</span>
+                        </div>
+                    </div>
+                    <pre class="code-font text-xs bg-black/30 p-3 rounded-lg mt-4"><code><span class="syntax-type">uint256</span> <span class="syntax-keyword">public</span> <span class="syntax-keyword">immutable</span> <span class="syntax-variable">INITIAL_VALUE</span>;
+
+<span class="syntax-keyword">constructor</span>(<span class="syntax-type">uint256</span> <span class="syntax-variable">_initialValue</span>) {
+    <span class="syntax-variable">INITIAL_VALUE</span> = _initialValue;
+}</code></pre>
+                </div>
+            </div>
+
+            <!-- 对比按钮 -->
+            <div class="text-center">
+                <button @click="showDiff = !showDiff" class="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full hover:scale-105 transition-transform">
+                    {{ showDiff ? '隐藏对比' : '查看详细对比' }}
+                </button>
+            </div>
+
+            <!-- 详细对比表 -->
+            <div x-show="showDiff" x-transition class="mt-6 card-glass rounded-xl p-6">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b border-white/20">
+                            <th class="text-left py-3 text-white/60">特性</th>
+                            <th class="text-center py-3 text-blue-400">constant</th>
+                            <th class="text-center py-3 text-purple-400">immutable</th>
+                        </tr>
+                    </thead>
+                    <tbody class="text-white/80">
+                        <tr class="border-b border-white/10">
+                            <td class="py-3">赋值时机</td>
+                            <td class="text-center">编译时</td>
+                            <td class="text-center">构造函数</td>
+                        </tr>
+                        <tr class="border-b border-white/10">
+                            <td class="py-3">存储位置</td>
+                            <td class="text-center">嵌入字节码</td>
+                            <td class="text-center">嵌入字节码</td>
+                        </tr>
+                        <tr class="border-b border-white/10">
+                            <td class="py-3">Gas 成本</td>
+                            <td class="text-center">几乎为 0</td>
+                            <td class="text-center">较低</td>
+                        </tr>
+                        <tr class="border-b border-white/10">
+                            <td class="py-3">值来源</td>
+                            <td class="text-center">代码硬编码</td>
+                            <td class="text-center">部署参数</td>
+                        </tr>
+                        <tr>
+                            <td class="py-3">典型用途</td>
+                            <td class="text-center">固定配置</td>
+                            <td class="text-center">部署时配置</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 7: require 与构造函数 -->
+    <div class="slide items-center justify-center" x-show="currentSlide === 6" x-transition.opacity.duration.500ms>
+        <div class="max-w-5xl w-full px-8">
+            <h2 class="text-4xl font-bold mb-8 text-center">✅ 条件检查与构造函数</h2>
+
+            <div class="grid grid-cols-2 gap-8">
+                <!-- require -->
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-green-300 flex items-center">
+                        <span class="text-2xl mr-2">✅</span>
+                        require 条件检查
+                    </h3>
+                    <div class="bg-black/30 rounded-lg p-4 mb-4">
+                        <p class="text-sm text-white/60 mb-2">语法：</p>
+                        <pre class="code-font text-sm"><code><span class="syntax-function">require</span>(条件, <span class="syntax-string">"错误消息"</span>);</code></pre>
+                    </div>
+                    <div class="space-y-3 text-sm">
+                        <div class="p-3 bg-green-500/20 rounded-lg">
+                            <p class="text-green-300 font-bold">条件为真 → 继续执行 ✅</p>
+                        </div>
+                        <div class="p-3 bg-red-500/20 rounded-lg">
+                            <p class="text-red-300 font-bold">条件为假 → 回滚交易 ❌</p>
+                        </div>
+                    </div>
+                    <div class="mt-4 p-4 bg-yellow-500/20 rounded-lg">
+                        <p class="text-sm text-yellow-200">💡 口诀：<strong>条件为真继续走，条件为假就回头！</strong></p>
+                    </div>
+                </div>
+
+                <!-- 代码示例 -->
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-blue-300">实际应用</h3>
+                    <pre class="code-font text-sm bg-black/30 p-4 rounded-lg overflow-x-auto"><code><span class="syntax-keyword">function</span> <span class="syntax-function">setSmallNumber</span>(<span class="syntax-type">uint8</span> <span class="syntax-variable">_value</span>) <span class="syntax-keyword">public</span> {
+    <span class="syntax-comment">// 检查：值必须 <= 255</span>
+    <span class="syntax-function">require</span>(
+        _value <= <span class="syntax-number">255</span>,
+        <span class="syntax-string">"Value too large for uint8"</span>
+    );
+
+    <span class="syntax-comment">// 检查通过，继续执行</span>
+    <span class="syntax-variable">smallNumber</span> = _value;
+}</code></pre>
+                    <div class="mt-4 space-y-2 text-sm">
+                        <div class="flex items-center">
+                            <span class="text-green-400 mr-2">✓</span>
+                            <span>传入 100 → 通过 → 赋值成功</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-red-400 mr-2">✗</span>
+                            <span>传入 300 → 失败 → 报错回滚</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 构造函数 -->
+            <div class="mt-6 card-glass rounded-xl p-6">
+                <h3 class="text-xl font-bold mb-4 text-purple-300 flex items-center">
+                    <span class="text-2xl mr-2">🏗️</span>
+                    构造函数 (constructor)
+                </h3>
+                <div class="grid grid-cols-2 gap-6">
+                    <div>
+                        <p class="text-white/70 mb-4">合约部署时自动执行一次，用于初始化：</p>
+                        <ul class="space-y-2 text-sm text-white/80">
+                            <li class="flex items-start">
+                                <span class="text-purple-400 mr-2">•</span>
+                                设置 <span class="code-font text-purple-300">immutable</span> 变量
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-purple-400 mr-2">•</span>
+                                初始化合约状态
+                            </li>
+                            <li class="flex items-start">
+                                <span class="text-purple-400 mr-2">•</span>
+                                配置权限地址
+                            </li>
+                        </ul>
+                    </div>
+                    <pre class="code-font text-sm bg-black/30 p-4 rounded-lg"><code><span class="syntax-keyword">constructor</span>(<span class="syntax-type">uint256</span> <span class="syntax-variable">_initialValue</span>) {
+    <span class="syntax-variable">INITIAL_VALUE</span> = _initialValue;
+    <span class="syntax-variable">owner</span> = <span class="syntax-variable">msg</span>.<span class="syntax-variable">sender</span>;
+}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Slide 8: 总结 -->
+    <div class="slide items-center justify-center" x-show="currentSlide === 7" x-transition.opacity.duration.500ms>
+        <div class="max-w-5xl w-full px-8">
+            <h2 class="text-4xl font-bold mb-8 text-center">📝 今日学习总结</h2>
+
+            <div class="grid grid-cols-2 gap-6">
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-blue-300">🔤 变量类型</h3>
+                    <ul class="space-y-2 text-sm text-white/80">
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>bool: true/false，默认 false</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>uint: 0 ~ 2²⁵⁶-1（无符号）</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>int: -2²⁵⁵ ~ 2²⁵⁵-1（有符号）</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>type(X).max/min 获取边界</li>
+                    </ul>
+                </div>
+
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-purple-300">👁️ 可见性</h3>
+                    <ul class="space-y-2 text-sm text-white/80">
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>public: 自动生成 getter</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>private: 仅本合约</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>internal: 默认，子合约可访问</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>external: 仅外部，更省 gas</li>
+                    </ul>
+                </div>
+
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-yellow-300">🔒 常量</h3>
+                    <ul class="space-y-2 text-sm text-white/80">
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>constant: 编译时确定</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>immutable: 构造时确定</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>都不占用存储槽位</li>
+                    </ul>
+                </div>
+
+                <div class="card-glass rounded-xl p-6">
+                    <h3 class="text-xl font-bold mb-4 text-green-300">✅ 其他</h3>
+                    <ul class="space-y-2 text-sm text-white/80">
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>require: 条件检查，失败回滚</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>constructor: 部署时初始化</li>
+                        <li class="flex items-center"><span class="text-green-400 mr-2">✓</span>参数下划线前缀命名惯例</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="mt-8 text-center">
+                <div class="inline-block card-glass rounded-xl px-8 py-4">
+                    <p class="text-lg text-white/80">🎉 恭喜你完成 Day 3 学习！</p>
+                    <p class="text-sm text-white/60 mt-2">下一步：Day 4 - 地址类型与合约类型</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function slideApp() {
+            return {
+                currentSlide: 0,
+                slides: [0, 1, 2, 3, 4, 5, 6, 7],
+
+                nextSlide() {
+                    if (this.currentSlide < this.slides.length - 1) {
+                        this.currentSlide++;
+                    }
+                },
+
+                prevSlide() {
+                    if (this.currentSlide > 0) {
+                        this.currentSlide--;
+                    }
+                },
+
+                goToSlide(index) {
+                    this.currentSlide = index;
+                },
+
+                init() {
+                    // 键盘导航
+                    document.addEventListener('keydown', (e) => {
+                        if (e.key === 'ArrowRight' || e.key === ' ') {
+                            this.nextSlide();
+                        } else if (e.key === 'ArrowLeft') {
+                            this.prevSlide();
+                        }
+                    });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
