@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solidity 进阶：枚举、自定义值类型与状态机</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8fafc;
+            --bg-tertiary: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --accent: #0ea5e9;
+            --accent-light: #e0f2fe;
+            --accent-warm: #f97316;
+            --accent-green: #10b981;
+            --accent-purple: #8b5cf6;
+            --border: #e2e8f0;
+            --shadow: rgba(15, 23, 42, 0.08);
+            --font-display: 'Noto Sans SC', sans-serif;
+            --font-body: 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --title-size: clamp(1.75rem, 5vw, 3.5rem);
+            --h2-size: clamp(1.25rem, 3vw, 2rem);
+            --h3-size: clamp(1rem, 2vw, 1.5rem);
+            --body-size: clamp(0.8rem, 1.2vw, 1rem);
+            --code-size: clamp(0.7rem, 1vw, 0.9rem);
+            --slide-padding: clamp(1.5rem, 5vw, 4rem);
+            --content-gap: clamp(1rem, 2vw, 2rem);
+            --element-gap: clamp(0.5rem, 1vw, 1rem);
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.5s;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+
+        .slide:nth-child(even) { background: var(--bg-secondary); }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: var(--title-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--content-gap);
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-size: var(--h2-size);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--element-gap);
+        }
+
+        h3 {
+            font-size: var(--h3-size);
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: var(--element-gap);
+        }
+
+        p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            max-width: 65ch;
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--accent-light);
+            color: var(--accent);
+            border-radius: 20px;
+            font-size: var(--body-size);
+            font-weight: 500;
+            margin-bottom: var(--element-gap);
+        }
+
+        .code-block {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            overflow-x: auto;
+            max-width: 100%;
+            box-shadow: 0 10px 40px var(--shadow);
+            line-height: 1.7;
+            white-space: pre;
+        }
+
+        .code-block .comment { color: #64748b; font-style: italic; }
+        .code-block .keyword { color: #c084fc; font-weight: 500; }
+        .code-block .type { color: #22d3ee; }
+        .code-block .function { color: #fbbf24; }
+        .code-block .string { color: #4ade80; }
+        .code-block .number { color: #f97316; }
+        .code-block .modifier { color: #f472b6; }
+
+        .bullet-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: var(--element-gap);
+        }
+
+        .bullet-list li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .bullet-list li::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            margin-top: 0.5em;
+            flex-shrink: 0;
+        }
+
+        .card {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: var(--content-gap);
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+            gap: var(--element-gap);
+            margin-top: var(--content-gap);
+        }
+
+        .concept-card {
+            background: var(--bg-primary);
+            border-left: 4px solid var(--accent);
+            padding: var(--element-gap);
+            border-radius: 0 12px 12px 0;
+        }
+
+        .concept-card h4 {
+            font-size: var(--body-size);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .concept-card p { font-size: clamp(0.7rem, 1vw, 0.85rem); color: var(--text-secondary); }
+
+        .table-container { overflow-x: auto; margin-top: var(--element-gap); }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--code-size);
+        }
+
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg-tertiary); font-weight: 600; color: var(--text-primary); }
+        td { color: var(--text-secondary); }
+
+        code {
+            font-family: var(--font-mono);
+            background: var(--bg-tertiary);
+            padding: 0.15rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9em;
+            color: var(--accent-purple);
+        }
+
+        .diagram {
+            background: var(--bg-tertiary);
+            padding: var(--content-gap);
+            border-radius: 16px;
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            line-height: 1.8;
+            white-space: pre;
+            overflow-x: auto;
+            color: var(--text-secondary);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal { opacity: 1; transform: translateY(0); }
+        .slide.visible .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .slide.visible .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .slide.visible .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .slide.visible .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .slide.visible .reveal:nth-child(5) { transition-delay: 0.5s; }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            z-index: 1000;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot.active { background: var(--accent); transform: scale(1.3); }
+
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .keyboard-hint span { display: flex; align-items: center; gap: 0.5rem; }
+
+        .key {
+            background: var(--bg-tertiary);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            font-family: var(--font-mono);
+        }
+
+        @media (max-width: 768px) {
+            .nav-dots, .keyboard-hint { display: none; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal { transition: opacity 0.3s ease; transform: none; }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <div class="keyboard-hint">
+        <span><span class="key">←</span> <span class="key">→</span> 翻页</span>
+        <span><span class="key">Space</span> 下一页</span>
+    </div>
+
+    <!-- Slide 1: Title -->
+    <section class="slide" data-slide="1">
+        <div class="slide-content">
+            <span class="tag reveal">Solidity 进阶</span>
+            <h1 class="reveal">枚举、自定义值类型与状态机</h1>
+            <p class="subtitle reveal">掌握 Solidity 中的类型系统和状态管理</p>
+        </div>
+    </section>
+
+    <!-- Slide 2: Overview -->
+    <section class="slide" data-slide="2">
+        <div class="slide-content">
+            <h2 class="reveal">今日内容概览</h2>
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h3>01 枚举</h3>
+                    <p>用户自定义类型，表示有限状态值</p>
+                </div>
+                <div class="card reveal">
+                    <h3>02 自定义值类型</h3>
+                    <p>基于内置类型创建新类型，包装与展开</p>
+                </div>
+                <div class="card reveal">
+                    <h3>03 状态机</h3>
+                    <p>枚举的实战应用，管理复杂业务流程</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 3: What is Enum -->
+    <section class="slide" data-slide="3">
+        <div class="slide-content">
+            <span class="tag reveal">01 枚举</span>
+            <h2 class="reveal">什么是枚举？</h2>
+            <p class="reveal">枚举是一种用户<strong>自定义类型</strong>，用于表示<strong>有限数量的状态值</strong>。让代码更易读、更安全。</p>
+            <h3 class="reveal" style="margin-top: var(--content-gap);">生活中的例子</h3>
+            <ul class="bullet-list reveal">
+                <li>星期几：Monday, Tuesday, Wednesday...</li>
+                <li>订单状态：Pending, Confirmed, Shipped, Delivered</li>
+                <li>用户角色：Guest, Member, Admin, Owner</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Slide 4: Enum Syntax -->
+    <section class="slide" data-slide="4">
+        <div class="slide-content">
+            <span class="tag reveal">01 枚举</span>
+            <h2 class="reveal">枚举的定义语法</h2>
+            <div class="code-block reveal" style="margin-top: var(--content-gap);"><span class="comment">// 语法: enum EnumName { Value1, Value2, Value3 }</span>
+
+<span class="keyword">enum</span> <span class="type">State</span> {
+    <span class="type">Created</span>,    <span class="comment">// 0 - 初始状态</span>
+    <span class="type">Locked</span>,     <span class="comment">// 1 - 锁定状态</span>
+    <span class="type">Inactive</span>    <span class="comment">// 2 - 非活跃状态</span>
+}
+
+<span class="keyword">enum</span> <span class="type">OrderStatus</span> {
+    <span class="type">Pending</span>,    <span class="comment">// 0 - 待确认</span>
+    <span class="type">Confirmed</span>,  <span class="comment">// 1 - 已确认</span>
+    <span class="type">Shipped</span>,    <span class="comment">// 2 - 已发货</span>
+    <span class="type">Delivered</span>,  <span class="comment">// 3 - 已送达</span>
+    <span class="type">Cancelled</span>   <span class="comment">// 4 - 已取消</span>
+}</div>
+            <ul class="bullet-list reveal" style="margin-top: var(--content-gap);">
+                <li>成员值从 <strong>0</strong> 开始自动编号</li>
+                <li>可以显式指定值：<code>Created = 0, Locked = 1</code></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Slide 5: Enum Usage -->
+    <section class="slide" data-slide="5">
+        <div class="slide-content">
+            <span class="tag reveal">01 枚举</span>
+            <h2 class="reveal">枚举的使用</h2>
+            <div class="code-block reveal"><span class="keyword">contract</span> <span class="type">EnumDemo</span> {
+
+    <span class="comment">// 定义枚举</span>
+    <span class="keyword">enum</span> <span class="type">State</span> {
+        <span class="type">Created</span>,
+        <span class="type">Locked</span>,
+        <span class="type">Inactive</span>
+    }
+
+    <span class="comment">// 使用枚举声明状态变量</span>
+    <span class="type">State</span> <span class="keyword">public</span> <span class="type">currentState</span> = <span class="type">State</span>.<span class="type">Created</span>;
+
+    <span class="comment">// 枚举作为映射的值类型</span>
+    <span class="type">mapping</span>(<span class="type">uint256</span> =&gt; <span class="type">OrderStatus</span>) <span class="keyword">public</span> <span class="type">orders</span>;
+}</div>
+            <h3 class="reveal" style="margin-top: var(--content-gap);">函数中使用枚举</h3>
+            <div class="code-block reveal"><span class="keyword">function</span> <span class="function">lock</span>() <span class="keyword">public</span> {
+    <span class="type">require</span>(
+        <span class="type">currentState</span> == <span class="type">State</span>.<span class="type">Created</span>,
+        <span class="string">"Can only lock from Created state"</span>
+    );
+    <span class="type">currentState</span> = <span class="type">State</span>.<span class="type">Locked</span>;
+}</div>
+        </div>
+    </section>
+
+    <!-- Slide 6: Enum Conversion -->
+    <section class="slide" data-slide="6">
+        <div class="slide-content">
+            <span class="tag reveal">01 枚举</span>
+            <h2 class="reveal">枚举与整型的转换</h2>
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h3>枚举 → 整数</h3>
+                    <div class="code-block" style="margin-top: 0.5rem;"><span class="type">State</span> state = <span class="type">State</span>.<span class="type">Locked</span>;
+<span class="type">uint8</span> value = <span class="type">uint8</span>(state);  <span class="comment">// Locked = 1</span></div>
+                </div>
+                <div class="card reveal">
+                    <h3>整数 → 枚举</h3>
+                    <div class="code-block" style="margin-top: 0.5rem;"><span class="type">uint8</span> value = <span class="number">1</span>;
+<span class="type">State</span> state = <span class="type">State</span>(value);  <span class="comment">// 等同于 State.Locked</span></div>
+                </div>
+            </div>
+            <div class="concept-card reveal" style="margin-top: var(--content-gap);">
+                <h4>⚠️ 注意：需要验证值的有效性！</h4>
+                <p>整数转枚举时要先验证范围，防止无效值。</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 7: Custom Value Type Intro -->
+    <section class="slide" data-slide="7">
+        <div class="slide-content">
+            <span class="tag reveal">02 自定义值类型</span>
+            <h2 class="reveal">什么是自定义值类型？</h2>
+            <p class="reveal">自定义值类型是 <strong>Solidity 0.8+</strong> 引入的新特性，基于内置类型创建新的类型。</p>
+            <div class="card-grid reveal" style="margin-top: var(--content-gap);">
+                <div class="concept-card">
+                    <h4>类型安全</h4>
+                    <p>防止意外的类型混用</p>
+                </div>
+                <div class="concept-card">
+                    <h4>代码可读性</h4>
+                    <p>用 Price 而非 uint256 表示价格</p>
+                </div>
+                <div class="concept-card">
+                    <h4>语义明确</h4>
+                    <p>代码意图更清晰</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 8: Custom Value Type Definition -->
+    <section class="slide" data-slide="8">
+        <div class="slide-content">
+            <span class="tag reveal">02 自定义值类型</span>
+            <h2 class="reveal">自定义值类型的定义</h2>
+            <div class="code-block reveal" style="margin-top: var(--content-gap);"><span class="comment">// 语法: type TypeName is UnderlyingType;</span>
+<span class="comment">// 位置: 在合约外部、pragma 之后定义</span>
+
+<span class="keyword">type</span> <span class="type">UserId</span>    <span class="keyword">is</span> <span class="type">uint128</span>;  <span class="comment">// 基于 uint128 的用户ID</span>
+<span class="keyword">type</span> <span class="type">OrderId</span>   <span class="keyword">is</span> <span class="type">uint256</span>;  <span class="comment">// 基于 uint256 的订单ID</span>
+<span class="keyword">type</span> <span class="type">Price</span>      <span class="keyword">is</span> <span class="type">uint256</span>;  <span class="comment">// 基于 uint256 的价格</span>
+<span class="keyword">type</span> <span class="type">Percentage</span> <span class="keyword">is</span> <span class="type">uint8</span>;    <span class="comment">// 基于 uint8 的百分比</span></div>
+            <p class="reveal" style="margin-top: var(--content-gap);">底层类型只能是整数类型：<code>uint8</code>, <code>uint256</code>, <code>int8</code> 等</p>
+        </div>
+    </section>
+
+    <!-- Slide 9: Wrap & Unwrap -->
+    <section class="slide" data-slide="9">
+        <div class="slide-content">
+            <span class="tag reveal">02 自定义值类型</span>
+            <h2 class="reveal">核心概念：包装 (Wrap) 与展开 (Unwrap)</h2>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr><th>操作</th><th>语法</th><th>作用</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><strong>包装 (wrap)</strong></td><td><code>Price.wrap(value)</code></td><td>底层类型 → 自定义类型</td></tr>
+                        <tr><td><strong>展开 (unwrap)</strong></td><td><code>Price.unwrap(price)</code></td><td>自定义类型 → 底层类型</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <h3 class="reveal" style="margin-top: var(--content-gap);">为什么需要包装/展开？</h3>
+            <ul class="bullet-list reveal">
+                <li>自定义类型本质上还是底层类型</li>
+                <li>编译器会阻止不同自定义类型之间的混用（类型安全）</li>
+                <li>需要计算时必须先<strong>展开</strong>为底层类型</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Slide 10: Wrap/Unwrap Example -->
+    <section class="slide" data-slide="10">
+        <div class="slide-content">
+            <span class="tag reveal">02 自定义值类型</span>
+            <h2 class="reveal">包装与展开示例</h2>
+            <div class="code-block reveal"><span class="comment">// 1. 创建新值（包装）</span>
+<span class="keyword">function</span> <span class="function">setPrice</span>(<span class="type">uint256</span> _value) <span class="keyword">public</span> {
+    <span class="type">currentPrice</span> = <span class="type">Price</span>.<span class="function">wrap</span>(_value);  <span class="comment">// uint256 → Price</span>
+}
+
+<span class="comment">// 2. 取出值计算（展开）</span>
+<span class="keyword">function</span> <span class="function">applyDiscount</span>(
+    <span class="type">Price</span> _price,
+    <span class="type">uint8</span> _discount
+) <span class="keyword">public pure returns</span> (<span class="type">Price</span>) {
+    <span class="comment">// 展开为底层类型进行计算</span>
+    <span class="type">uint256</span> rawPrice = <span class="type">Price</span>.<span class="function">unwrap</span>(_price);
+    <span class="type">uint256</span> discounted = rawPrice * (<span class="number">100</span> - _discount) / <span class="number">100</span>;
+
+    <span class="comment">// 包装返回</span>
+    <span class="keyword">return</span> <span class="type">Price</span>.<span class="function">wrap</span>(discounted);
+}</div>
+        </div>
+    </section>
+
+    <!-- Slide 11: When to Unwrap -->
+    <section class="slide" data-slide="11">
+        <div class="slide-content">
+            <span class="tag reveal">02 自定义值类型</span>
+            <h2 class="reveal">什么时候需要展开？</h2>
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h3>需要展开的场景</h3>
+                    <ul class="bullet-list" style="margin-top: 0.5rem;">
+                        <li>数学运算：<code>Price.unwrap(p1) + Price.unwrap(p2)</code></li>
+                        <li>比较操作：<code>Price.unwrap(p1) == Price.unwrap(p2)</code></li>
+                        <li>转换为其他类型</li>
+                    </ul>
+                </div>
+                <div class="card reveal">
+                    <h3>不需要展开的场景</h3>
+                    <ul class="bullet-list" style="margin-top: 0.5rem;">
+                        <li>作为映射的 key/value</li>
+                        <li>函数参数传递</li>
+                        <li>存储到状态变量</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 12: State Machine Intro -->
+    <section class="slide" data-slide="12">
+        <div class="slide-content">
+            <span class="tag reveal">03 状态机</span>
+            <h2 class="reveal">什么是状态机？</h2>
+            <p class="reveal">状态机是一种<strong>设计模式</strong>，用于管理系统只能处于<strong>有限状态</strong>之一，并在<strong>特定条件</strong>下进行状态转换。</p>
+            <h3 class="reveal" style="margin-top: var(--content-gap);">生活中的例子</h3>
+            <ul class="bullet-list reveal">
+                <li>电梯：停止 → 上升 → 停止 → 下降 → 停止</li>
+                <li>订单：待付款 → 已付款 → 已发货 → 已收货</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Slide 13: State Machine Components -->
+    <section class="slide" data-slide="13">
+        <div class="slide-content">
+            <span class="tag reveal">03 状态机</span>
+            <h2 class="reveal">状态机的组成要素</h2>
+            <div class="diagram reveal">状态机 = 状态定义 + 状态变量 + 转换规则 + 转换函数</div>
+            <div class="card-grid reveal" style="margin-top: var(--content-gap);">
+                <div class="concept-card"><h4>1. 状态</h4><p>用枚举定义所有可能的状态</p></div>
+                <div class="concept-card"><h4>2. 状态变量</h4><p>存储当前状态</p></div>
+                <div class="concept-card"><h4>3. 转换规则</h4><p>定义哪些状态可以转换到哪些状态</p></div>
+                <div class="concept-card"><h4>4. 转换函数</h4><p>执行状态转换的函数</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 14: State Machine Code -->
+    <section class="slide" data-slide="14">
+        <div class="slide-content">
+            <span class="tag reveal">03 状态机</span>
+            <h2 class="reveal">状态机代码示例</h2>
+            <div class="code-block reveal"><span class="keyword">contract</span> <span class="type">StateMachine</span> {
+
+    <span class="comment">// 1. 定义状态枚举</span>
+    <span class="keyword">enum</span> <span class="type">ContractState</span> {
+        <span class="type">Draft</span>,      <span class="comment">// 0 - 草稿</span>
+        <span class="type">Review</span>,     <span class="comment">// 1 - 审核中</span>
+        <span class="type">Approved</span>,   <span class="comment">// 2 - 已批准</span>
+        <span class="type">Active</span>,     <span class="comment">// 3 - 激活</span>
+        <span class="type">Suspended</span>,  <span class="comment">// 4 - 暂停</span>
+        <span class="type">Terminated</span>  <span class="comment">// 5 - 终止</span>
+    }
+
+    <span class="comment">// 2. 状态变量</span>
+    <span class="type">ContractState</span> <span class="keyword">public</span> state = <span class="type">ContractState</span>.<span class="type">Draft</span>;
+
+    <span class="comment">// 3. 修饰符：验证状态</span>
+    <span class="keyword">modifier</span> <span class="function">inState</span>(<span class="type">ContractState</span> _state) {
+        <span class="type">require</span>(state == _state, <span class="string">"Invalid state"</span>);
+        _;
+    }
+
+    <span class="comment">// 4. 状态转换函数</span>
+    <span class="keyword">function</span> <span class="function">submitForReview</span>() <span class="keyword">public</span> <span class="function">onlyOwner</span> <span class="function">inState</span>(<span class="type">ContractState</span>.<span class="type">Draft</span>) {
+        state = <span class="type">ContractState</span>.<span class="type">Review</span>;
+    }
+}</div>
+        </div>
+    </section>
+
+    <!-- Slide 15: State Transition -->
+    <section class="slide" data-slide="15">
+        <div class="slide-content">
+            <span class="tag reveal">03 状态机</span>
+            <h2 class="reveal">状态转换图</h2>
+            <div class="diagram reveal">┌─────────┐  submitForReview()  ┌─────────┐  approve()  ┌──────────┐
+│  Draft  │ ──────────────────&gt;│ Review  │ ──────────&gt;│ Approved │
+└─────────┘                     └─────────┘              └──────────┘
+      ▲                                │                         │
+      │ reject()                       │                         │
+      │                                ▼                         │
+      │                          (reject返回)                    │
+      │                                                        │
+      │                                │                    activate()
+      │                                │                         ▼
+      │                                │                   ┌─────────┐
+      │                                │                   │ Active  │
+      │                                │                   └─────────┘
+      │                                │                         │
+      │                                │                    suspend()
+      │                                │                         │
+      │                                │                         ▼
+      │                                │                   ┌───────────┐
+      │                                │                   │ Suspended │
+      │                                │                   └───────────┘
+      │                                │                         │
+      │                                │                    resume()
+      │                                │                         │
+      └────────────────────────────────┘                         │
+                                                               │
+                    terminate() ─────────────────────────────────┘
+                                                               ▼
+                                                         ┌────────────┐
+                                                         │ Terminated │ ← 终态
+                                                         └────────────┘</div>
+        </div>
+    </section>
+
+    <!-- Slide 16: State Validation -->
+    <section class="slide" data-slide="16">
+        <div class="slide-content">
+            <span class="tag reveal">03 状态机</span>
+            <h2 class="reveal">状态验证方法</h2>
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h3>方法1：使用修饰符</h3>
+                    <div class="code-block" style="margin-top: 0.5rem; font-size: 0.75rem;"><span class="keyword">modifier</span> <span class="function">inState</span>(<span class="type">ContractState</span> _s) {
+    <span class="type">require</span>(state == _s, <span class="string">"Invalid"</span>);
+    _;
+}
+
+<span class="keyword">function</span> <span class="function">activate</span>() <span class="keyword">public</span> <span class="function">inState</span>(<span class="type">Approved</span>) { ... }</div>
+                </div>
+                <div class="card reveal">
+                    <h3>方法2：使用 require</h3>
+                    <div class="code-block" style="margin-top: 0.5rem; font-size: 0.75rem;"><span class="keyword">function</span> <span class="function">terminate</span>() <span class="keyword">public</span> <span class="function">onlyOwner</span> {
+    <span class="type">require</span>(
+        state == <span class="type">Active</span> ||
+        state == <span class="type">Approved</span>,
+        <span class="string">"Cannot terminate"</span>
+    );
+    state = <span class="type">Terminated</span>;
+}</div>
+                </div>
+                <div class="card reveal">
+                    <h3>方法3：查询函数</h3>
+                    <div class="code-block" style="margin-top: 0.5rem; font-size: 0.75rem;"><span class="keyword">function</span> <span class="function">canTransitionTo</span>(<span class="type">ContractState</span> _target) <span class="keyword">view returns</span> (bool) {
+    <span class="keyword">if</span> (state == <span class="type">Draft</span> &amp;&amp; _target == <span class="type">Review</span>)
+        <span class="keyword">return</span> <span class="keyword">true</span>;
+    <span class="keyword">return</span> <span class="keyword">false</span>;
+}</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 17: Best Practices -->
+    <section class="slide" data-slide="17">
+        <div class="slide-content">
+            <h2 class="reveal">最佳实践清单</h2>
+            <div class="card-grid">
+                <div class="concept-card reveal"><h4>明确定义所有状态</h4><p>使用枚举列出所有可能状态</p></div>
+                <div class="concept-card reveal"><h4>设计清晰的转换规则</h4><p>绘制转换图，明确每个状态的权限</p></div>
+                <div class="concept-card reveal"><h4>使用修饰符验证状态</h4><p>简化代码，提高可读性</p></div>
+                <div class="concept-card reveal"><h4>记录转换历史</h4><p>便于审计和调试</p></div>
+                <div class="concept-card reveal"><h4>考虑终态</h4><p>终态不可逆</p></div>
+                <div class="concept-card reveal"><h4>提供查询接口</h4><p>方便前端调用</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 18: Knowledge Connection -->
+    <section class="slide" data-slide="18">
+        <div class="slide-content">
+            <h2 class="reveal">知识点串联</h2>
+            <div class="diagram reveal" style="text-align: center; font-size: 1.25rem;">
+<span style="color: var(--accent); font-weight: 600;">枚举 (Enum)</span>
+<span style="color: var(--text-muted);"> → </span>
+<span style="color: var(--accent-purple); font-weight: 600;">自定义值类型</span>
+<span style="color: var(--text-muted);"> → </span>
+<span style="color: var(--accent-green); font-weight: 600;">状态机</span></div>
+            <div class="card-grid reveal" style="margin-top: var(--content-gap);">
+                <div class="card"><h3>枚举</h3><p>基础 - 定义有限状态集合</p></div>
+                <div class="card"><h3>自定义值类型</h3><p>增强 - 让类型更安全、语义更清晰</p></div>
+                <div class="card"><h3>状态机</h3><p>应用 - 用枚举管理业务流程</p></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 19: Common Mistakes -->
+    <section class="slide" data-slide="19">
+        <div class="slide-content">
+            <h2 class="reveal">常见错误与避免</h2>
+            <div class="table-container reveal">
+                <table>
+                    <thead><tr><th>错误</th><th>解决方法</th></tr></thead>
+                    <tbody>
+                        <tr><td>整数转枚举未验证</td><td>使用 <code>require(value &lt;= maxValue)</code></td></tr>
+                        <tr><td>状态转换无检查</td><td>使用 <code>modifier inState()</code></td></tr>
+                        <tr><td>包装/展开使用错误</td><td>需要计算时展开，否则直接使用</td></tr>
+                        <tr><td>终态可逆</td><td>终态后不提供任何转换函数</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 20: Thank You -->
+    <section class="slide" data-slide="20">
+        <div class="slide-content" style="text-align: center;">
+            <h1 class="reveal">谢谢观看</h1>
+            <p class="subtitle reveal" style="margin-top: var(--content-gap);">继续加油！掌握这些知识点，你已经具备了管理复杂业务流程的核心技能。</p>
+        </div>
+    </section>
+
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.totalSlides = this.slides.length;
+                this.currentSlide = 0;
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.bindEvents();
+                this.updateSlide(0);
+                this.setupIntersectionObserver();
+            }
+
+            createNavDots() {
+                const nav = document.getElementById('navDots');
+                for (let i = 0; i < this.totalSlides; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot';
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    nav.appendChild(dot);
+                }
+            }
+
+            bindEvents() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+
+                let touchStartY = 0;
+                document.addEventListener('touchstart', (e) => { touchStartY = e.touches[0].clientY; });
+                document.addEventListener('touchend', (e) => {
+                    const diff = touchStartY - e.changedTouches[0].clientY;
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) this.nextSlide();
+                        else this.prevSlide();
+                    }
+                });
+            }
+
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const slideIndex = parseInt(entry.target.dataset.slide) - 1;
+                            this.currentSlide = slideIndex;
+                            this.updateSlide(slideIndex);
+                        }
+                    });
+                }, { threshold: 0.5 });
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            updateSlide(index) {
+                this.slides.forEach((slide, i) => slide.classList.toggle('visible', i === index));
+                document.querySelectorAll('.nav-dot').forEach((dot, i) => dot.classList.toggle('active', i === index));
+                document.getElementById('progressBar').style.width = ((index + 1) / this.totalSlides) * 100 + '%';
+            }
+
+            nextSlide() { if (this.currentSlide < this.totalSlides - 1) { this.currentSlide++; this.scrollToSlide(this.currentSlide); } }
+            prevSlide() { if (this.currentSlide > 0) { this.currentSlide--; this.scrollToSlide(this.currentSlide); } }
+            goToSlide(index) { this.currentSlide = index; this.scrollToSlide(index); }
+            scrollToSlide(index) { this.slides[index].scrollIntoView({ behavior: 'smooth' }); this.updateSlide(index); }
+        }
+
+        new SlidePresentation();
+    </script>
+</body>
+</html>

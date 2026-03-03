@@ -1,0 +1,34 @@
+{
+  "name": "solidity-day05-enum-custom-type",
+  "version": "1.0.0",
+  "description": "Day 5 - Solidity 变量：枚举、自定义值类型",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:ai": "node test/ai-automated-test.js",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "verify": "hardhat run scripts/verify.js --network localhost",
+    "node": "hardhat node",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "web3",
+    "blockchain",
+    "enum",
+    "custom-value-type",
+    "state-machine"
+  ],
+  "author": "xiucai",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "chai": "^4.3.10",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {}
+}
+
