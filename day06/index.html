@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solidity Day 6: 数组、存储与映射</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           深色专业主题，高对比度确保可读性
+           =========================================== */
+        :root {
+            /* 深色背景 - 主色 */
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-card: #21262d;
+            --bg-code: #1e2430;
+
+            /* 文字颜色 - 确保高对比度 */
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+
+            /* 强调色 - 青色/蓝色系，专业技术感 */
+            --accent: #58a6ff;
+            --accent-glow: rgba(88, 166, 255, 0.3);
+            --accent-secondary: #3fb950;
+            --accent-warning: #d29922;
+            --accent-error: #f85149;
+
+            /* 边框 */
+            --border: #30363d;
+            --border-light: #3d444d;
+
+            /* 字体 */
+            --font-display: 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            /* 字号 - 使用 clamp() 响应式缩放 */
+            --title-size: clamp(2rem, 5vw, 4rem);
+            --h1-size: clamp(1.75rem, 4vw, 3rem);
+            --h2-size: clamp(1.25rem, 3vw, 2rem);
+            --h3-size: clamp(1rem, 2vw, 1.5rem);
+            --body-size: clamp(0.875rem, 1.5vw, 1.125rem);
+            --code-size: clamp(0.75rem, 1.2vw, 0.95rem);
+            --small-size: clamp(0.7rem, 1vw, 0.85rem);
+
+            /* 间距 */
+            --slide-padding: clamp(1.5rem, 4vw, 4rem);
+            --content-gap: clamp(1rem, 2vw, 2rem);
+            --element-gap: clamp(0.5rem, 1vw, 1rem);
+
+            /* 动画 */
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.6s;
+            --duration-fast: 0.3s;
+        }
+
+        /* ===========================================
+           BASE STYLES
+           =========================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-display);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        /* ===========================================
+           SLIDE CONTAINER
+           =========================================== */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        /* ===========================================
+           TYPOGRAPHY
+           =========================================== */
+        h1 {
+            font-size: var(--title-size);
+            font-weight: 900;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: var(--content-gap);
+        }
+
+        h2 {
+            font-size: var(--h1-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.3;
+            margin-bottom: var(--content-gap);
+        }
+
+        h3 {
+            font-size: var(--h2-size);
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: var(--element-gap);
+        }
+
+        p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: var(--element-gap);
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .highlight-secondary {
+            color: var(--accent-secondary);
+            font-weight: 700;
+        }
+
+        .highlight-warning {
+            color: var(--accent-warning);
+            font-weight: 700;
+        }
+
+        .big-text {
+            font-size: var(--h1-size);
+            font-weight: 900;
+            color: var(--accent);
+        }
+
+        /* ===========================================
+           CODE BLOCKS
+           =========================================== */
+        code {
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            background: var(--bg-code);
+            color: #e6edf3;
+            padding: 0.15em 0.4em;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        pre {
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            background: var(--bg-code);
+            color: #e6edf3;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            overflow-x: auto;
+            margin: var(--element-gap) 0;
+            line-height: 1.6;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            border: none;
+            font-size: inherit;
+        }
+
+        /* ===========================================
+           LISTS
+           =========================================== */
+        ul, ol {
+            padding-left: 1.5rem;
+            margin: var(--element-gap) 0;
+        }
+
+        li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            line-height: 1.5;
+        }
+
+        li::marker {
+            color: var(--accent);
+        }
+
+        /* ===========================================
+           TABLES
+           =========================================== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: var(--element-gap) 0;
+            font-size: var(--body-size);
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        tr:nth-child(even) td {
+            background: var(--bg-secondary);
+        }
+
+        /* ===========================================
+           CARDS
+           =========================================== */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: var(--element-gap) 0;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--content-gap);
+            margin: var(--content-gap) 0;
+        }
+
+        .card h3 {
+            margin-bottom: 0.75rem;
+        }
+
+        .card p {
+            margin-bottom: 0;
+        }
+
+        /* ===========================================
+           ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        /* ===========================================
+           NAVIGATION
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent);
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all var(--duration-fast) ease;
+        }
+
+        .nav-dot:hover {
+            background: var(--text-secondary);
+        }
+
+        .nav-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            font-size: var(--small-size);
+            color: var(--text-muted);
+        }
+
+        /* ===========================================
+           SPECIFIC SLIDE STYLES
+           =========================================== */
+        /* 标题页 */
+        .title-slide {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #0f1923 100%);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .title-slide h1 {
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .title-slide .subtitle {
+            font-size: var(--h2-size);
+            color: var(--text-secondary);
+            margin-top: 1rem;
+        }
+
+        .title-slide .tagline {
+            font-size: var(--body-size);
+            color: var(--text-muted);
+            margin-top: 2rem;
+        }
+
+        /* 内容卡片 */
+        .content-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin: 0.5rem 0;
+        }
+
+        .content-card h4 {
+            color: var(--accent);
+            font-size: var(--body-size);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .content-card p {
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        /* 两栏布局 */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--content-gap);
+        }
+
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 强调框 */
+        .box {
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--accent);
+            padding: 1rem 1.25rem;
+            margin: var(--element-gap) 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .box h4 {
+            color: var(--accent);
+            font-size: var(--body-size);
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .box p {
+            margin: 0;
+            font-size: var(--body-size);
+        }
+
+        .box.warning {
+            border-color: var(--accent-warning);
+        }
+
+        .box.warning h4 {
+            color: var(--accent-warning);
+        }
+
+        .box.success {
+            border-color: var(--accent-secondary);
+        }
+
+        .box.success h4 {
+            color: var(--accent-secondary);
+        }
+
+        /* 知识点标签 */
+        .tag {
+            display: inline-block;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 0.25rem 0.75rem;
+            font-size: var(--small-size);
+            color: var(--accent);
+            margin: 0.25rem;
+        }
+
+        /* 网格布局 */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--content-gap);
+        }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: var(--element-gap);
+        }
+
+        @media (max-width: 900px) {
+            .grid-3 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .grid-2, .grid-3 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* 列表样式 */
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 0.75rem 0;
+            padding-left: 1.5rem;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .feature-list li:last-child {
+            border-bottom: none;
+        }
+
+        .feature-list li::before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        /* 键盘快捷键提示 */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 1.5rem;
+            font-size: var(--small-size);
+            color: var(--text-muted);
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .keyboard-hint kbd {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0.2rem 0.5rem;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+        }
+
+        /* 代码行内样式 */
+        .code-inline {
+            font-family: var(--font-mono);
+            background: var(--bg-code);
+            color: var(--accent);
+            padding: 0.1em 0.4em;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        /* 对比表格 */
+        .comparison-table th {
+            background: var(--bg-card);
+        }
+
+        .comparison-table th:first-child {
+            color: var(--accent);
+        }
+
+        .comparison-table td:first-child {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* 结束页 */
+        .end-slide {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #0f1923 100%);
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .end-slide h2 {
+            font-size: var(--title-size);
+            color: var(--text-primary);
+        }
+
+        .end-slide p {
+            font-size: var(--h3-size);
+            color: var(--text-secondary);
+            margin-top: 1rem;
+        }
+
+        /* 响应式调整 */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(1rem, 3vw, 2rem);
+                --content-gap: clamp(0.75rem, 1.5vw, 1rem);
+            }
+
+            .card {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .nav-dots {
+                right: 0.75rem;
+            }
+
+            .keyboard-hint {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Progress bar -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Navigation dots -->
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- Keyboard hints -->
+    <div class="keyboard-hint">
+        <span><kbd>↑</kbd><kbd>↓</kbd> 导航</span>
+        <span><kbd>Space</kbd> 下一页</span>
+    </div>
+
+    <!-- ===== SLIDE 1: 标题页 ===== -->
+    <section class="slide title-slide">
+        <div class="slide-content">
+            <h1 class="reveal">Solidity Day 6</h1>
+            <p class="subtitle reveal">数组、存储与映射 - 引用类型详解</p>
+            <p class="tagline reveal">掌握 Solidity 核心数据类型</p>
+            <div class="reveal" style="margin-top: 2rem;">
+                <span class="tag">数组</span>
+                <span class="tag">Storage</span>
+                <span class="tag">Memory</span>
+                <span class="tag">Calldata</span>
+                <span class="tag">映射</span>
+                <span class="tag">结构体</span>
+            </div>
+        </div>
+        <span class="slide-number">1 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 2: 课程大纲 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">📚 课程大纲</h2>
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h3>1. 数组（Array）</h3>
+                    <p>固定长度 vs 动态数组，push/pop 操作，数组遍历</p>
+                </div>
+                <div class="card reveal">
+                    <h3>2. Storage vs Memory vs Calldata</h3>
+                    <p>三种数据位置的区别，使用场景，Gas 优化</p>
+                </div>
+                <div class="card reveal">
+                    <h3>3. 映射（Mapping）</h3>
+                    <p>键值对，嵌套映射，遍历实现</p>
+                </div>
+                <div class="card reveal">
+                    <h3>4. 结构体（Struct）</h3>
+                    <p>自定义类型，Storage/Memory 引用</p>
+                </div>
+                <div class="card reveal">
+                    <h3>5. 最佳实践</h3>
+                    <p>Gas 优化技巧，常见错误，避免陷阱</p>
+                </div>
+                <div class="card reveal">
+                    <h3>6. 注意事项</h3>
+                    <p>边界检查，数据位置，遍历限制</p>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">2 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 3: 数组概念 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">1. 数组（Array）- 概念</h2>
+            <p class="reveal">数组是 Solidity 中用于存储<strong class="highlight">相同类型元素</strong>的集合。</p>
+
+            <div class="grid-2 reveal">
+                <div class="box">
+                    <h4>📐 固定长度数组</h4>
+                    <p>长度在编译时确定，不可改变</p>
+                </div>
+                <div class="box success">
+                    <h4>📐 动态数组</h4>
+                    <p>长度在运行时确定，可动态增长</p>
+                </div>
+            </div>
+
+            <h3 class="reveal" style="margin-top: 1.5rem;">声明方式</h3>
+            <pre class="reveal"><code>// 固定长度数组
+uint[5] public fixedArray;        // 5个 uint256
+address[10] public addressArray; // 10个地址
+
+// 动态数组
+uint[] public dynamicArray;       // uint256 动态数组
+address[] public addressList;    // 地址动态数组
+string[] public names;           // 字符串动态数组</code></pre>
+        </div>
+        <span class="slide-number">3 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 4: 数组操作 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">1. 数组 - 常用操作</h2>
+
+            <div class="grid-2">
+                <div>
+                    <h3 class="reveal">push() - 添加元素</h3>
+                    <pre class="reveal"><code>function pushToArray(uint256 _value) public {
+    dynamicArray.push(_value);
+}
+
+function pushAddress(address _addr) public {
+    addressList.push(_addr);
+}</code></pre>
+
+                    <h3 class="reveal" style="margin-top: 1rem;">pop() - 移除元素</h3>
+                    <pre class="reveal"><code>function popFromArray() public {
+    require(dynamicArray.length > 0);
+    dynamicArray.pop();
+}</code></pre>
+                </div>
+
+                <div>
+                    <h3 class="reveal">length - 获取长度</h3>
+                    <pre class="reveal"><code>function getLength() public view returns (uint256) {
+    return dynamicArray.length;
+}</code></pre>
+
+                    <h3 class="reveal" style="margin-top: 1rem;">访问元素</h3>
+                    <pre class="reveal"><code>function getElement(uint256 _index) public view returns (uint256) {
+    require(_index < dynamicArray.length);
+    return dynamicArray[_index];
+}</code></pre>
+
+                    <h3 class="reveal" style="margin-top: 1rem;">delete - 删除元素</h3>
+                    <pre class="reveal"><code>function deleteElement(uint256 _index) public {
+    delete dynamicArray[_index]; // 设为默认值
+}</code></pre>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">4 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 5: 数组示例 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">1. 数组 - 完整示例</h2>
+
+            <pre class="reveal"><code>contract ArrayDemo {
+    uint[] public numbers;
+
+    // 添加元素
+    function addNumber(uint256 _value) public {
+        numbers.push(_value);
+    }
+
+    // 求和
+    function sumArray() public view returns (uint256) {
+        uint256 sum = 0;
+        for (uint256 i = 0; i < numbers.length; i++) {
+            sum += numbers[i];
+        }
+        return sum;
+    }
+
+    // 查找最大值
+    function findMax() public view returns (uint256) {
+        require(numbers.length > 0);
+        uint256 max = numbers[0];
+        for (uint256 i = 1; i < numbers.length; i++) {
+            if (numbers[i] > max) {
+                max = numbers[i];
+            }
+        }
+        return max;
+    }
+}</code></pre>
+
+            <div class="box warning">
+                <h4>⚠️ 注意事项</h4>
+                <p>访问数组元素前必须检查索引边界，避免 out-of-bounds 错误</p>
+            </div>
+        </div>
+        <span class="slide-number">5 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 6: 数据位置概念 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">2. Storage vs Memory vs Calldata</h2>
+            <p class="reveal">理解三种数据位置是编写高效合约的关键！</p>
+
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h3>💾 Storage</h3>
+                    <p><strong class="highlight">永久存储</strong>在区块链上</p>
+                    <p>合约状态变量默认使用</p>
+                    <p class="highlight-warning">Gas 成本：最高</p>
+                </div>
+                <div class="card reveal">
+                    <h3>📝 Memory</h3>
+                    <p><strong class="highlight-secondary">临时存储</strong></p>
+                    <p>函数执行期间存在</p>
+                    <p class="highlight-warning">Gas 成本：中等</p>
+                </div>
+                <div class="card reveal">
+                    <h3>📡 Calldata</h3>
+                    <p><strong class="highlight">只读区域</strong></p>
+                    <p>来自交易调用数据</p>
+                    <p class="highlight-warning">Gas 成本：最低</p>
+                </div>
+            </div>
+
+            <div class="box success">
+                <h4>💡 记忆要点</h4>
+                <p>Storage = 持久化（状态变量） | Memory = 临时（函数内） | Calldata = 只读（外部函数参数）</p>
+            </div>
+        </div>
+        <span class="slide-number">6 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 7: 数据位置使用 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">2. 数据位置 - 使用方法</h2>
+
+            <div class="grid-2">
+                <div>
+                    <h3 class="reveal">Storage 使用</h3>
+                    <pre class="reveal"><code>contract StorageDemo {
+    uint[] public storageArray;
+
+    function addToArray(uint256 _value) public {
+        // 直接修改 storage
+        storageArray.push(_value);
+    }
+
+    // 使用 storage 引用
+    function modifyViaRef(uint256 _idx, uint256 _val) public {
+        uint256[] storage ref = storageArray;
+        ref[_idx] = _val; // 影响原始数据
+    }
+}</code></pre>
+                </div>
+
+                <div>
+                    <h3 class="reveal">Memory 使用</h3>
+                    <pre class="reveal"><code>contract MemoryDemo {
+    function processArray(uint256[] memory _arr)
+        public pure returns (uint256[] memory) {
+        // _arr 是 memory 副本
+        for (uint i = 0; i < _arr.length; i++) {
+            _arr[i] = _arr[i] * 2;
+        }
+        return _arr; // 返回修改后的副本
+    }
+
+    function createArray(uint256 _size) public pure {
+        uint256[] memory arr = new uint256[](_size);
+    }
+}</code></pre>
+                </div>
+            </div>
+
+            <div class="box" style="margin-top: 1rem;">
+                <h4>📡 Calldata - 只能用于 external 函数</h4>
+                <pre><code>function sumData(uint256[] calldata _data) external pure returns (uint256) {
+    // _data 是只读的，无法修改
+    // 节省 Gas，不需要复制
+}</code></pre>
+            </div>
+        </div>
+        <span class="slide-number">7 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 8: calldata 补充说明 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">2. Calldata 补充说明</h2>
+
+            <div class="box success">
+                <h4>🎯 关键点：Calldata 与 external 函数</h4>
+                <ul>
+                    <li><code class="code-inline">calldata</code> 只能用于 <strong class="highlight">external 函数</strong></li>
+                    <li>是 external 函数的<strong class="highlight">默认数据位置</strong>，可以省略</li>
+                    <li><strong class="highlight">只读</strong>，无法在函数内修改</li>
+                </ul>
+            </div>
+
+            <h3 class="reveal" style="margin-top: 1.5rem;">函数类型与默认数据位置</h3>
+            <table class="comparison-table reveal">
+                <thead>
+                    <tr>
+                        <th>函数类型</th>
+                        <th>引用类型参数默认数据位置</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>external</td>
+                        <td><code class="code-inline">calldata</code>（可省略）</td>
+                    </tr>
+                    <tr>
+                        <td>internal / private</td>
+                        <td><code class="code-inline">memory</code>（可省略）</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="box warning">
+                <h4>⚠️ 注意</h4>
+                <p>internal 函数不能使用 calldata，因为内部函数在合约内部调用，无法访问 calldata 区域</p>
+            </div>
+        </div>
+        <span class="slide-number">8 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 9: 映射概念 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">3. 映射（Mapping）- 概念</h2>
+            <p class="reveal">映射是<strong class="highlight">键值对</strong>数据结构，类似哈希表</p>
+
+            <pre class="reveal"><code>mapping(keyType => valueType) public mappingName;</code></pre>
+
+            <h3 class="reveal" style="margin-top: 1.5rem;">声明方式</h3>
+            <pre class="reveal"><code>// 基本映射
+mapping(address => uint256) public balances;      // 地址 -> 余额
+mapping(uint256 => address) public idToAddress;  // ID -> 地址
+mapping(address => bool) public isMember;        // 地址 -> 是否成员
+
+// 嵌套映射
+mapping(address => mapping(address => uint256)) public allowances;
+// owner -> spender -> 授权额度</code></pre>
+
+            <div class="box warning">
+                <h4>⚠️ 限制</h4>
+                <ul>
+                    <li>keyType 只能是值类型（address, uint256, bytes32, bool）</li>
+                    <li>映射<strong class="highlight">无法遍历</strong>，需要配合数组</li>
+                    <li>访问不存在的键返回默认值（0 / false / address(0)）</li>
+                </ul>
+            </div>
+        </div>
+        <span class="slide-number">9 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 10: 映射操作 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">3. 映射 - 操作与遍历</h2>
+
+            <div class="grid-2">
+                <div>
+                    <h3 class="reveal">基本操作</h3>
+                    <pre class="reveal"><code>function setBalance(address _addr, uint256 _amount) public {
+    balances[_addr] = _amount;
+}
+
+function getBalance(address _addr) public view returns (uint256) {
+    return balances[_addr];
+}
+
+function increaseBalance(address _addr, uint256 _amount) public {
+    balances[_addr] += _amount;
+}</code></pre>
+
+                    <h3 class="reveal" style="margin-top: 1rem;">嵌套映射</h3>
+                    <pre class="reveal"><code>function setAllowance(address _owner, address _spender, uint256 _amount) public {
+    allowances[_owner][_spender] = _amount;
+}
+
+function getAllowance(address _owner, address _spender) public view returns (uint256) {
+    return allowances[_owner][_spender];
+}</code></pre>
+                </div>
+
+                <div>
+                    <h3 class="reveal">遍历实现（配合数组）</h3>
+                    <pre class="reveal"><code>address[] public allAddresses;
+mapping(address => bool) public addressExists;
+
+function addAddress(address _addr) public {
+    if (!addressExists[_addr]) {
+        allAddresses.push(_addr);
+        addressExists[_addr] = true;
+    }
+}
+
+function getAllAddresses() public view returns (address[] memory) {
+    return allAddresses;
+}</code></pre>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">10 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 11: 结构体 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">4. 结构体（Struct）</h2>
+            <p class="reveal">结构体是<strong class="highlight">自定义类型</strong>，可组合多个相关变量</p>
+
+            <h3 class="reveal">声明与赋值语法</h3>
+            <pre class="reveal"><code>struct User {
+    uint256 id;
+    address addr;
+    string name;
+}
+
+// 方式一：命名参数（推荐）
+User memory user1 = User({
+    id: 1,
+    addr: msg.sender,
+    name: "Alice"
+});
+
+// 方式二：位置参数
+User memory user2 = User(2, msg.sender, "Bob");</code></pre>
+
+            <div class="box warning">
+                <h4>⚠️ 注意：为什么用 <code>User({})</code> 而不是直接 <code>{...}</code>？</h4>
+                <p>在 Solidity 中，结构体类型就像一个"构造函数"，需要通过 <code>Type({...})</code> 来创建实例。<code>()</code> 是必需的语法。</p>
+            </div>
+
+            <h3 class="reveal" style="margin-top: 1rem;">Storage vs Memory 引用</h3>
+            <pre class="reveal"><code>User[] public users;
+
+function updateUserName(uint256 _index, string memory _name) public {
+    User storage u = users[_index];  // storage 引用，修改影响原始数据
+    u.name = _name;
+}
+
+function processUser(User memory _user) public pure {
+    _user.id = _user.id * 2;  // memory 副本，不影响原始数据
+}</code></pre>
+        </div>
+        <span class="slide-number">11 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 12: 最佳实践 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">5. 最佳实践</h2>
+
+            <div class="grid-2">
+                <div>
+                    <h3 class="reveal">数组</h3>
+                    <ul class="feature-list">
+                        <li class="reveal">固定大小已知时，用固定长度数组省 Gas</li>
+                        <li class="reveal">访问元素前必须边界检查</li>
+                        <li class="reveal">避免在循环中删除元素</li>
+                        <li class="reveal">大数组返回会消耗大量 Gas</li>
+                    </ul>
+
+                    <h3 class="reveal" style="margin-top: 1rem;">Storage/Memory</h3>
+                    <ul class="feature-list">
+                        <li class="reveal">external 函数参数用 <code class="code-inline">calldata</code> 省 Gas</li>
+                        <li class="reveal">内部修改状态变量时使用 storage 引用</li>
+                        <li class="reveal">引用类型参数必须指定数据位置</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="reveal">映射</h3>
+                    <ul class="feature-list">
+                        <li class="reveal">映射无法遍历，需配合数组</li>
+                        <li class="reveal">记录所有键以便遍历</li>
+                        <li class="reveal">访问不存在的键返回默认值</li>
+                        <li class="reveal">键类型只能是值类型</li>
+                    </ul>
+
+                    <h3 class="reveal" style="margin-top: 1rem;">Gas 优化</h3>
+                    <ul class="feature-list">
+                        <li class="reveal">calldata > memory > storage（Gas 成本）</li>
+                        <li class="reveal">批量操作减少 SSTORE</li>
+                        <li class="reveal">避免动态大小的 memory 数组</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">12 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 13: 注意事项 ===== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">6. 注意事项汇总</h2>
+
+            <div class="card-grid">
+                <div class="box warning reveal">
+                    <h4>⚠️ 数组边界</h4>
+                    <p>访问 <code>arr[i]</code> 前必须检查 <code>i < arr.length</code></p>
+                </div>
+
+                <div class="box warning reveal">
+                    <h4>⚠️ 数据位置</h4>
+                    <p>引用类型作为函数参数必须指定 memory/calldata/storage</p>
+                </div>
+
+                <div class="box warning reveal">
+                    <h4>⚠️ 映射遍历</h4>
+                    <p>映射没有 length，无法直接遍历，必须配合数组</p>
+                </div>
+
+                <div class="box warning reveal">
+                    <h4>⚠️ Calldata 限制</h4>
+                    <p>只能用于 external 函数，是只读的</p>
+                </div>
+
+                <div class="box warning reveal">
+                    <h4>⚠️ 存储修改</h4>
+                    <p>storage 引用修改会影响原始数据，memory 不会</p>
+                </div>
+
+                <div class="box warning reveal">
+                    <h4>⚠️ 结构体语法</h4>
+                    <p>创建结构体实例需要 <code>Type({...})</code> 语法</p>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">13 / 14</span>
+    </section>
+
+    <!-- ===== SLIDE 14: 结束页 ===== -->
+    <section class="slide end-slide">
+        <div class="slide-content">
+            <h2 class="reveal">🎉 课程结束！</h2>
+            <p class="reveal">掌握这些核心概念，你已经具备了编写 Solidity 智能合约的基础</p>
+            <p class="reveal" style="margin-top: 2rem; color: var(--accent);">下一步：实践出真知，多写代码！</p>
+            <div class="reveal" style="margin-top: 3rem;">
+                <span class="tag">加油💪</span>
+            </div>
+        </div>
+        <span class="slide-number">14 / 14</span>
+    </section>
+
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.progressBar = document.getElementById('progressBar');
+                this.navDots = document.getElementById('navDots');
+
+                this.init();
+            }
+
+            init() {
+                // Create navigation dots
+                this.createNavDots();
+
+                // Set initial state
+                this.updateProgress();
+                this.updateNavDots();
+                this.triggerAnimation(0);
+
+                // Event listeners
+                this.bindEvents();
+            }
+
+            createNavDots() {
+                this.slides.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot';
+                    dot.addEventListener('click', () => this.goToSlide(index));
+                    this.navDots.appendChild(dot);
+                });
+            }
+
+            bindEvents() {
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+
+                // Scroll navigation
+                let scrollTimeout;
+                window.addEventListener('scroll', () => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        this.handleScroll();
+                    }, 50);
+                });
+
+                // Touch navigation
+                let touchStartY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                });
+
+                document.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchStartY - touchEndY;
+
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }
+                });
+            }
+
+            handleScroll() {
+                const scrollPosition = window.scrollY;
+                const windowHeight = window.innerHeight;
+                const newSlide = Math.round(scrollPosition / windowHeight);
+
+                if (newSlide !== this.currentSlide && newSlide >= 0 && newSlide < this.slides.length) {
+                    this.currentSlide = newSlide;
+                    this.updateProgress();
+                    this.updateNavDots();
+                    this.triggerAnimation(newSlide);
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.slides.length - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            goToSlide(index) {
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                this.currentSlide = index;
+                this.updateProgress();
+                this.updateNavDots();
+                this.triggerAnimation(index);
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = `${progress}%`;
+            }
+
+            updateNavDots() {
+                const dots = this.navDots.querySelectorAll('.nav-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentSlide);
+                });
+            }
+
+            triggerAnimation(index) {
+                this.slides.forEach((slide, i) => {
+                    if (i === index) {
+                        slide.classList.add('visible');
+                    } else {
+                        slide.classList.remove('visible');
+                    }
+                });
+            }
+        }
+
+        // Initialize
+        new SlidePresentation();
+    </script>
+</body>
+</html>
