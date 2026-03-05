@@ -1,0 +1,1151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day07 - Solidity 高级数据类型</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --bg-code: #1a1f26;
+
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+
+            --accent-cyan: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --accent-purple: #a371f7;
+            --accent-red: #f85149;
+            --accent-pink: #db61a2;
+
+            --code-keyword: #ff7b72;
+            --code-string: #a5d6ff;
+            --code-function: #d2a8ff;
+            --code-comment: #6a9955;
+            --code-number: #79c0ff;
+            --code-type: #7ee787;
+
+            --font-display: 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+
+            --title-size: clamp(2rem, 5vw, 3.5rem);
+            --h2-size: clamp(1.4rem, 3vw, 2rem);
+            --h3-size: clamp(1.1rem, 2vw, 1.4rem);
+            --body-size: clamp(0.85rem, 1.2vw, 1.05rem);
+            --code-size: clamp(0.7rem, 0.9vw, 0.9rem);
+            --small-size: clamp(0.7rem, 0.85vw, 0.85rem);
+
+            --slide-padding: clamp(2rem, 5vw, 4rem);
+            --content-gap: clamp(1rem, 2vw, 1.8rem);
+            --element-gap: clamp(0.5rem, 1vw, 0.8rem);
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.4s;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-display);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        .slides-container {
+            height: 100vh;
+            height: 100dvh;
+            overflow-y: scroll;
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        .slide {
+            width: 100%;
+            min-height: 100vh;
+            min-height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            scroll-snap-stop: always;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        .slide-content {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .slide.content-left .slide-content {
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 30% 30%, rgba(88, 166, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 70%, rgba(163, 113, 247, 0.06) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: var(--title-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--content-gap);
+            letter-spacing: -0.02em;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: var(--h2-size);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--content-gap);
+            display: flex;
+            align-items: center;
+            gap: var(--element-gap);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        h3 {
+            font-size: var(--h3-size);
+            font-weight: 500;
+            color: var(--accent-cyan);
+            margin-bottom: var(--element-gap);
+            text-align: center;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.2em 0.6em;
+            font-size: var(--small-size);
+            font-weight: 500;
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            color: var(--text-secondary);
+        }
+
+        .tag.important {
+            background: rgba(63, 185, 80, 0.15);
+            color: var(--accent-green);
+            border: 1px solid rgba(63, 185, 80, 0.3);
+        }
+
+        .tag.warning {
+            background: rgba(210, 153, 34, 0.15);
+            color: var(--accent-orange);
+            border: 1px solid rgba(210, 153, 34, 0.3);
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: white;
+            font-size: var(--body-size);
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        ul, ol {
+            padding-left: 1.5em;
+            text-align: left;
+            width: 100%;
+        }
+
+        li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: var(--element-gap);
+            line-height: 1.5;
+        }
+
+        li::marker {
+            color: var(--accent-cyan);
+        }
+
+        strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .highlight {
+            color: var(--accent-green);
+            font-weight: 500;
+        }
+
+        .accent {
+            color: var(--accent-cyan);
+        }
+
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: 10px;
+            padding: var(--content-gap);
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            line-height: 1.6;
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 40vh;
+            margin: var(--element-gap) 0;
+            text-align: left;
+            width: 100%;
+        }
+
+        .code-block code {
+            display: block;
+            white-space: pre;
+        }
+
+        .kw { color: var(--code-keyword); }
+        .str { color: var(--code-string); }
+        .fn { color: var(--code-function); }
+        .cm { color: var(--code-comment); font-style: italic; }
+        .num { color: var(--code-number); }
+        .type { color: var(--code-type); }
+        .op { color: var(--text-secondary); }
+        .attr { color: var(--accent-pink); }
+
+        .table-wrapper {
+            overflow-x: auto;
+            overflow-y: auto;
+            max-height: 35vh;
+            margin: var(--element-gap) 0;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--body-size);
+        }
+
+        th, td {
+            padding: 0.7em 1em;
+            text-align: left;
+            border-bottom: 1px solid var(--bg-tertiary);
+        }
+
+        th {
+            color: var(--text-primary);
+            font-weight: 600;
+            background: var(--bg-secondary);
+            position: sticky;
+            top: 0;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        tr:hover td {
+            background: var(--bg-secondary);
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--bg-tertiary);
+            border-radius: 12px;
+            padding: var(--content-gap);
+            margin: var(--element-gap) 0;
+            text-align: left;
+            width: 100%;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: var(--content-gap);
+            margin: var(--content-gap) 0;
+            width: 100%;
+        }
+
+        .card h3 {
+            text-align: left;
+            margin-bottom: 0.5em;
+        }
+
+        .card p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot:hover,
+        .nav-dot.active {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            transform: scale(1.3);
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.05s; }
+        .reveal:nth-child(2) { transition-delay: 0.1s; }
+        .reveal:nth-child(3) { transition-delay: 0.15s; }
+        .reveal:nth-child(4) { transition-delay: 0.2s; }
+        .reveal:nth-child(5) { transition-delay: 0.25s; }
+
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(1rem, 3vw, 2rem);
+                --content-gap: clamp(0.6rem, 1.5vw, 1rem);
+            }
+            .code-block {
+                max-height: 30vh;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --title-size: clamp(1.6rem, 6vw, 2.5rem);
+            }
+            .nav-dots {
+                display: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                transition: opacity 0.3s ease;
+                transform: none;
+            }
+            html {
+                scroll-behavior: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <div class="slides-container" id="slidesContainer">
+
+    <section class="slide" id="slide-1">
+        <div class="slide-content">
+            <div class="reveal">
+                <h1>Solidity 高级数据类型</h1>
+                <p style="font-size: var(--h2-size); color: var(--text-secondary); margin: 1rem 0 2rem;">
+                    Day 07 - 深入学习 bytes、string、多维数组与切片
+                </p>
+                <span class="tag important" style="font-size: var(--body-size);">⭐⭐⭐ 必须掌握</span>
+            </div>
+            <div class="reveal" style="margin-top: 3rem;">
+                <p style="color: var(--text-muted); font-size: var(--small-size);">按 ← → 键 或 滚轮 翻页</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-2">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">📑</span> 学习目录</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <ol style="list-style: none; padding: 0;">
+                    <li style="padding: 0.8em 0; border-bottom: 1px solid var(--bg-tertiary); font-size: var(--body-size);">
+                        <span class="accent" style="font-size: 1.2em;">01</span> &nbsp; <strong>bytes 类型</strong> — 动态字节数组基础
+                    </li>
+                    <li style="padding: 0.8em 0; border-bottom: 1px solid var(--bg-tertiary); font-size: var(--body-size);">
+                        <span class="accent" style="font-size: 1.2em;">02</span> &nbsp; <strong>string 类型</strong> — UTF-8 字符串与字节关系
+                    </li>
+                    <li style="padding: 0.8em 0; border-bottom: 1px solid var(--bg-tertiary); font-size: var(--body-size);">
+                        <span class="accent" style="font-size: 1.2em;">03</span> &nbsp; <strong>bytes1-bytes32</strong> — 固定长度字节数组
+                    </li>
+                    <li style="padding: 0.8em 0; border-bottom: 1px solid var(--bg-tertiary); font-size: var(--body-size);">
+                        <span class="accent" style="font-size: 1.2em;">04</span> &nbsp; <strong>bytes 与 string 互转</strong> — 类型转换核心
+                    </li>
+                    <li style="padding: 0.8em 0; border-bottom: 1px solid var(--bg-tertiary); font-size: var(--body-size);">
+                        <span class="accent" style="font-size: 1.2em;">05</span> &nbsp; <strong>多维数组</strong> — 二维、三维数组操作
+                    </li>
+                    <li style="padding: 0.8em 0; border-bottom: 1px solid var(--bg-tertiary); font-size: var(--body-size);">
+                        <span class="accent" style="font-size: 1.2em;">06</span> &nbsp; <strong>切片操作</strong> — 字符串提取与处理
+                    </li>
+                    <li style="padding: 0.8em 0; font-size: var(--body-size);">
+                        <span class="accent" style="font-size: 1.2em;">07</span> &nbsp; <strong>字符串高级操作</strong> — 比较、连接、搜索
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-3">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">01</span> bytes 类型 — 动态字节数组</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--content-gap); text-align: left; font-size: var(--body-size);">
+                    <strong class="accent" style="font-size: 1.1em;">bytes</strong> 是 Solidity 中的<strong>动态字节数组</strong>，可以存储任意数量的字节。
+                </p>
+                <ul style="margin-left: 1.5em;">
+                    <li style="font-size: var(--body-size);">与 <span class="highlight">bytes1[]</span> 不同，<strong>bytes 是连续内存</strong>，更节省 Gas</li>
+                    <li style="font-size: var(--body-size);">支持 <span class="highlight">push()</span> / <span class="highlight">pop()</span> 动态增删元素</li>
+                    <li style="font-size: var(--body-size);">索引访问返回 <span class="highlight">bytes1</span> 类型</li>
+                </ul>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>代码示例</h3>
+                <div class="code-block">
+<code><span class="kw">contract</span> <span class="fn">BytesDemo</span> {
+    <span class="kw">bytes</span> <span class="kw">public</span> <span class="attr">dynamicBytes</span>;
+
+    <span class="cm">// 添加字节到末尾</span>
+    <span class="kw">function</span> <span class="fn">pushByte</span>(<span class="kw">uint8</span> <span class="attr">_byte</span>) <span class="kw">public</span> {
+        <span class="attr">dynamicBytes</span>.<span class="fn">push</span>(<span class="fn">bytes1</span>(<span class="attr">_byte</span>));
+    }
+
+    <span class="cm">// 移除最后一个字节</span>
+    <span class="kw">function</span> <span class="fn">popByte</span>() <span class="kw">public</span> {
+        <span class="attr">dynamicBytes</span>.<span class="fn">pop</span>();
+    }
+
+    <span class="cm">// 获取指定索引字节</span>
+    <span class="kw">function</span> <span class="fn">getByte</span>(<span class="kw">uint256</span> <span class="attr">_index</span>) <span class="kw">view</span> <span class="kw">returns</span>(<span class="kw">bytes1</span>) {
+        <span class="kw">return</span> <span class="attr">dynamicBytes</span>[<span class="attr">_index</span>];
+    }
+}</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-4">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">02</span> string 类型 — 本质就是 bytes</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--content-gap); text-align: left; font-size: var(--body-size);">
+                    <strong class="accent" style="font-size: 1.1em;">string</strong> 是 UTF-8 编码文本类型，<span class="tag warning">本质上是 bytes 的封装</span>。
+                </p>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>⚠️ 为什么不能直接获取长度？</h3>
+                <div class="code-block">
+<code><span class="cm">// 错误 - string 没有 length 属性</span>
+<span class="attr">str</span>.<span class="attr">length</span>;
+
+<span class="cm">// 正确 - 需要先转成 bytes</span>
+<span class="fn">bytes</span>(<span class="attr">str</span>).<span class="attr">length</span>;</code>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>字节长度 vs 字符长度</h3>
+                <div class="card" style="padding: 1.2rem;">
+                    <p style="margin-bottom: 0.5rem; font-size: var(--body-size);"><code>"你好"</code> → <span class="highlight" style="font-size: 1.1em;">bytes("你好").length = 6</span></p>
+                    <p style="margin-bottom: 0.5rem; font-size: var(--body-size);"><span class="accent">中文字符在 UTF-8 中占 3 字节</span></p>
+                    <p style="font-size: var(--body-size);">字符个数 = <code>bytes(str).length / 3</code></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-5">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">02</span> string 和 bytes 本质关系</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <div class="card-grid">
+                    <div class="card" style="padding: 1.5rem;">
+                        <h3 style="color: var(--accent-green); font-size: var(--h3-size);">string</h3>
+                        <p style="font-size: var(--body-size); margin-top: 0.5rem;">只读的 bytes<br><span style="color: var(--text-muted);">需要转换才能操作</span></p>
+                    </div>
+                    <div class="card" style="padding: 1.5rem;">
+                        <h3 style="color: var(--accent-cyan); font-size: var(--h3-size);">bytes</h3>
+                        <p style="font-size: var(--body-size); margin-top: 0.5rem;">可读写的字节数组<br><span style="color: var(--text-muted);">可以直接操作</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <h3>核心原则：所有字符串操作最终都是与 bytes 字节打交道</h3>
+                <div class="code-block" style="margin-top: var(--element-gap);">
+<code><span class="cm">// 转换流程</span>
+<span class="kw">string</span> → <span class="fn">bytes</span>(<span class="attr">str</span>) → <span class="attr">操作</span> → <span class="fn">string</span>(<span class="attr">bytes</span>)
+
+<span class="cm">// 获取长度</span>
+<span class="fn">bytes</span>(<span class="attr">str</span>).<span class="attr">length</span>
+
+<span class="cm">// 访问字符</span>
+<span class="fn">bytes</span>(<span class="attr">str</span>)[<span class="num">0</span>]</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-6">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">03</span> 固定长度 bytes1-bytes32</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--content-gap); text-align: left; font-size: var(--body-size);">
+                    <strong>bytes1 到 bytes32</strong> 是固定长度的字节数组类型，存储在 storage 时每个类型占用固定槽位。
+                </p>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>常见用途</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th style="font-size: var(--body-size);">场景</th><th style="font-size: var(--body-size);">数据类型</th><th style="font-size: var(--body-size);">长度</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td style="font-size: var(--body-size);">哈希值</td><td style="font-size: var(--body-size);">bytes32</td><td class="highlight" style="font-size: var(--body-size);">32 字节 ✓</td></tr>
+                            <tr><td style="font-size: var(--body-size);">Token ID</td><td style="font-size: var(--body-size);">bytes32</td><td class="highlight" style="font-size: var(--body-size);">32 字节 ✓</td></tr>
+                            <tr><td style="font-size: var(--body-size);">签名</td><td style="font-size: var(--body-size);">bytes</td><td style="font-size: var(--body-size);">65 字节</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <div class="code-block">
+<code><span class="kw">bytes32</span> <span class="kw">public</span> <span class="attr">fixedBytes32</span>;  <span class="cm">// 32 字节</span>
+<span class="kw">bytes1</span> <span class="kw">public</span> <span class="attr">fixedBytes1</span>;    <span class="cm">// 1 字节</span>
+<span class="kw">bytes4</span> <span class="kw">public</span> <span class="attr">fixedBytes4</span>;    <span class="cm">// 4 字节</span>
+<span class="kw">bytes20</span> <span class="kw">public</span> <span class="attr">fixedBytes20</span>;  <span class="cm">// 20 字节（地址）</span></code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-7">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">03</span> ⚠️ bytes32 不是用来存字符串的！</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <div class="card" style="border-color: var(--accent-red); padding: 1.2rem;">
+                    <h3 style="color: var(--accent-red);">bytes → bytes32 转换会丢失数据！</h3>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>转换规则</h3>
+                <div class="code-block">
+<code><span class="cm">// 长度 >= 32：截取前 32 字节（丢失数据！）</span>
+<span class="cm">// 长度 < 32：剩余部分填充零</span>
+
+<span class="cm">// ✅ 短字符串（<= 32 字节）可以无损转换</span>
+<span class="kw">string</span> <span class="attr">short</span> = <span class="str">"Hi"</span>;
+<span class="kw">bytes32</span> <span class="attr">b</span> = <span class="fn">bytes32</span>(<span class="fn">bytes</span>(<span class="attr">short</span>));
+
+<span class="cm">// ❌ 长字符串（> 32 字节）会丢失数据！</span>
+<span class="kw">string</span> <span class="attr">long</span> = <span class="str">"这是一段很长的文字..."</span>;
+<span class="kw">bytes32</span> <span class="attr">b</span> = <span class="fn">bytes32</span>(<span class="fn">bytes</span>(<span class="attr">long</span>));
+<span class="cm">// 只保留前 32 字节！</span></code>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <p style="color: var(--accent-orange); text-align: left; font-size: var(--body-size);">
+                    <strong>正确做法：</strong>长字符串用 <code>string</code> 或 <code>bytes</code> 存储
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-8">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">04</span> bytes 与 string 互转</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--content-gap); text-align: left; font-size: var(--body-size);">
+                    bytes 和 string 可以相互转换，<span class="tag important">转换是零成本的视图操作</span>，不复制数据。
+                </p>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>基础转换方法</h3>
+                <div class="code-block">
+<code><span class="cm">// string → bytes（零成本）</span>
+<span class="kw">function</span> <span class="fn">stringToBytes</span>(<span class="kw">string</span> <span class="kw">memory</span> <span class="attr">_str</span>)
+    <span class="kw">pure</span> <span class="kw">returns</span> (<span class="kw">bytes</span> <span class="kw">memory</span>) {
+    <span class="kw">return</span> <span class="fn">bytes</span>(<span class="attr">_str</span>);
+}
+
+<span class="cm">// bytes → string（零成本）</span>
+<span class="kw">function</span> <span class="fn">bytesToString</span>(<span class="kw">bytes</span> <span class="kw">memory</span> <span class="attr">_bytes</span>)
+    <span class="kw">pure</span> <span class="kw">returns</span> (<span class="kw">string</span> <span class="kw">memory</span>) {
+    <span class="kw">return</span> <span class="fn">string</span>(<span class="attr">_bytes</span>);
+}</code>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>其他常用转换</h3>
+                <ul style="font-size: var(--body-size); margin-top: var(--element-gap);">
+                    <li><code>bytes32 → string</code> — 通过 bytes 中转</li>
+                    <li><code>uint256 → bytes</code> — 32 字节</li>
+                    <li><code>address → bytes</code> — 20 字节</li>
+                </ul>
+            </div>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <h3>⚠️ 不同语言字符串长度对比</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th style="font-size: var(--body-size);">语言</th><th style="font-size: var(--body-size);">"你好".length</th><th style="font-size: var(--body-size);">说明</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td style="font-size: var(--body-size);">JavaScript</td><td class="accent" style="font-size: var(--body-size);">2</td><td style="font-size: var(--body-size);">按字符计数</td></tr>
+                            <tr><td style="font-size: var(--body-size);">Python</td><td class="accent" style="font-size: var(--body-size);">2</td><td style="font-size: var(--body-size);">按字符计数</td></tr>
+                            <tr><td style="font-size: var(--body-size);">Solidity</td><td class="highlight" style="font-size: var(--body-size);">6</td><td style="font-size: var(--body-size);">按字节计数（中=3字节）</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p style="color: var(--accent-orange); text-align: left; font-size: var(--small-size); margin-top: 0.5rem;">
+                    💡 <code>bytes("你好").length</code> = 6，因为 UTF-8 中每个汉字占 3 字节
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-8b">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">04</span> 数值与地址的 bytes 转换</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <h3>uint256 → bytes (32字节)</h3>
+                <div class="code-block">
+<code><span class="kw">function</span> <span class="fn">uintToBytes</span>(<span class="kw">uint256</span> <span class="attr">_value</span>)
+    <span class="kw">pure</span> <span class="kw">returns</span> (<span class="kw">bytes</span> <span class="kw">memory</span>) {
+
+    <span class="kw">bytes</span> <span class="attr">result</span> = <span class="kw">new</span> <span class="kw">bytes</span>(<span class="num">32</span>);
+    <span class="kw">for</span> (<span class="kw">uint256</span> <span class="attr">i</span> = <span class="num">0</span>; <span class="attr">i</span> < <span class="num">32</span>; <span class="attr">i</span>++) {
+        <span class="attr">result</span>[<span class="num">31</span> - <span class="attr">i</span>] =
+            <span class="fn">bytes1</span>(<span class="fn">uint8</span>(<span class="attr">_value</span> >> (<span class="attr">i</span> * <span class="num">8</span>)));
+    }
+    <span class="kw">return</span> <span class="attr">result</span>;
+}</code>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>address → bytes (20字节)</h3>
+                <div class="code-block">
+<code><span class="kw">function</span> <span class="fn">addressToBytes</span>(<span class="kw">address</span> <span class="attr">_addr</span>)
+    <span class="kw">pure</span> <span class="kw">returns</span> (<span class="kw">bytes</span> <span class="kw">memory</span>) {
+
+    <span class="kw">bytes20</span> <span class="attr">addrBytes</span> = <span class="fn">bytes20</span>(<span class="attr">_addr</span>);
+    <span class="kw">bytes</span> <span class="attr">result</span> = <span class="kw">new</span> <span class="kw">bytes</span>(<span class="num">20</span>);
+    <span class="kw">for</span> (<span class="kw">uint256</span> <span class="attr">i</span> = <span class="num">0</span>; <span class="attr">i</span> < <span class="num">20</span>; <span class="attr">i</span>++) {
+        <span class="attr">result</span>[<span class="attr">i</span>] = <span class="attr">addrBytes</span>[<span class="attr">i</span>];
+    }
+    <span class="kw">return</span> <span class="attr">result</span>;
+}</code>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>bytes → uint256</h3>
+                <div class="code-block">
+<code><span class="kw">function</span> <span class="fn">bytesToUint</span>(<span class="kw">bytes</span> <span class="kw">memory</span> <span class="attr">_bytes</span>)
+    <span class="kw">pure</span> <span class="kw">returns</span> (<span class="kw">uint256</span>) {
+
+    <span class="fn">require</span>(<span class="attr">_bytes</span>.<span class="attr">length</span> >= <span class="num">32</span>, <span class="str">"Need 32 bytes"</span>);
+    <span class="kw">uint256</span> <span class="attr">result</span> = <span class="num">0</span>;
+    <span class="kw">for</span> (<span class="kw">uint256</span> <span class="attr">i</span> = <span class="num">0</span>; <span class="attr">i</span> < <span class="num">32</span>; <span class="attr">i</span>++) {
+        <span class="attr">result</span> = <span class="attr">result</span> * <span class="num">256</span> + <span class="fn">uint256</span>(<span class="fn">uint8</span>(<span class="attr">_bytes</span>[<span class="attr">i</span>]));
+    }
+    <span class="kw">return</span> <span class="attr">result</span>;
+}</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-9">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">05</span> 多维数组</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--content-gap); text-align: left; font-size: var(--body-size);">
+                    Solidity 支持<strong>二维、三维甚至更高维度</strong>的数组，分为动态多维数组和固定长度多维数组。
+                </p>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>声明方式</h3>
+                <div class="code-block">
+<code><span class="cm">// 动态二维数组 - 行数可变，每行长度也可变</span>
+<span class="kw">uint</span>[][] <span class="kw">public</span> <span class="attr">dynamic2DArray</span>;
+
+<span class="cm">// 固定长度二维数组 [3][5] = 5行 × 3列</span>
+<span class="kw">uint</span>[<span class="num">3</span>][<span class="num">5</span>] <span class="kw">public</span> <span class="attr">fixed2DArray</span>;
+
+<span class="cm">// 混合：固定行数（3行），每行动态长度</span>
+<span class="kw">uint</span>[][<span class="num">3</span>] <span class="kw">public</span> <span class="attr">mixed2DArray</span>;
+
+<span class="cm">// 动态三维数组</span>
+<span class="kw">uint</span>[][][] <span class="kw">public</span> <span class="attr">dynamic3DArray</span>;
+
+<span class="cm">// 固定三维数组 [2][3][4] = 4层×3行×2列</span>
+<span class="kw">uint</span>[<span class="num">2</span>][<span class="num">3</span>][<span class="num">4</span>] <span class="kw">public</span> <span class="attr">fixed3DArray</span>;</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-10">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">05</span> ⚠️ 数组声明与访问的顺序规则</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <div class="card-grid">
+                    <div class="card" style="padding: 1.2rem;">
+                        <h3 style="font-size: var(--h3-size);">声明规则：从右往左看</h3>
+                        <p style="font-size: var(--body-size); margin-top: 0.5rem;"><code>uint[3][4][5]</code><br>= 5层×4行×3列</p>
+                    </div>
+                    <div class="card" style="padding: 1.2rem;">
+                        <h3 style="font-size: var(--h3-size);">访问规则：从左往右写</h3>
+                        <p style="font-size: var(--body-size); margin-top: 0.5rem;"><code>arr[x][y][z]</code><br>= 第x层，第y行，第z列</p>
+                    </div>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>示例</h3>
+                <div class="code-block">
+<code><span class="kw">uint</span>[<span class="num">2</span>][<span class="num">3</span>][<span class="num">4</span>] <span class="kw">public</span> <span class="attr">fixed3DArray</span>;
+<span class="cm">// 4层 × 3行 × 2列</span>
+
+<span class="cm">// 设置值时按 层→行→列 顺序</span>
+<span class="fn">set3DElement</span>(<span class="kw">uint</span> <span class="attr">layer</span>, <span class="kw">uint</span> <span class="attr">row</span>,
+                   <span class="kw">uint</span> <span class="attr">col</span>, <span class="kw">uint</span> <span class="attr">value</span>) {
+    <span class="attr">fixed3DArray</span>[<span class="attr">layer</span>][<span class="attr">row</span>][<span class="attr">col</span>] = <span class="attr">value</span>;
+}</code>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <p style="color: var(--accent-orange); text-align: left; font-size: var(--body-size);">
+                    <strong>记忆口诀：</strong>声明从右往左是 列→行→层，访问从左往右是 层→行→列
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-10b">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">05</span> 多维数组遍历示例</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <h3>遍历二维数组计算总和</h3>
+                <div class="code-block">
+<code><span class="cm">// 假设 dynamic2DArray = [[1,2,3], [4,5,6]]</span>
+
+<span class="kw">function</span> <span class="fn">sum2DArray</span>() <span class="kw">public</span> <span class="kw">view</span> <span class="kw">returns</span> (<span class="kw">uint256</span>) {
+    <span class="kw">uint256</span> <span class="attr">total</span> = <span class="num">0</span>;
+
+    <span class="cm">// 外层循环：遍历每一行</span>
+    <span class="kw">for</span> (<span class="kw">uint256</span> <span class="attr">i</span> = <span class="num">0</span>;
+         <span class="attr">i</span> < <span class="attr">dynamic2DArray</span>.<span class="attr">length</span>;
+         <span class="attr">i</span>++) {
+
+        <span class="cm">// 内层循环：遍历当前行的每个元素</span>
+        <span class="kw">for</span> (<span class="kw">uint256</span> <span class="attr">j</span> = <span class="num">0</span>;
+             <span class="attr">j</span> < <span class="attr">dynamic2DArray</span>[<span class="attr">i</span>].<span class="attr">length</span>;
+             <span class="attr">j</span>++) {
+
+            <span class="attr">total</span> += <span class="attr">dynamic2DArray</span>[<span class="attr">i</span>][<span class="attr">j</span>];
+        }
+    }
+    <span class="kw">return</span> <span class="attr">total</span>;  <span class="cm">// 返回 21</span>
+}</code>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>计算某一行的总和</h3>
+                <div class="code-block">
+<code><span class="kw">function</span> <span class="fn">sumRow</span>(<span class="kw">uint256</span> <span class="attr">_rowIndex</span>)
+    <span class="kw">public</span> <span class="kw">view</span> <span class="kw">returns</span> (<span class="kw">uint256</span>) {
+
+    <span class="fn">require</span>(<span class="attr">_rowIndex</span> < <span class="attr">dynamic2DArray</span>.<span class="attr">length</span>, <span class="str">"Row not exist"</span>);
+
+    <span class="kw">uint256</span> <span class="attr">sum</span> = <span class="num">0</span>;
+    <span class="kw">uint256</span>[] <span class="kw">memory</span> <span class="attr">row</span> = <span class="attr">dynamic2DArray</span>[<span class="attr">_rowIndex</span>];
+
+    <span class="kw">for</span> (<span class="kw">uint256</span> <span class="attr">i</span> = <span class="num">0</span>; <span class="attr">i</span> < <span class="attr">row</span>.<span class="attr">length</span>; <span class="attr">i</span>++) {
+        <span class="attr">sum</span> += <span class="attr">row</span>[<span class="attr">i</span>];
+    }
+    <span class="kw">return</span> <span class="attr">sum</span>;
+}</code>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <div class="card" style="border-color: var(--accent-cyan); padding: 1rem;">
+                    <p style="color: var(--accent-cyan); font-size: var(--body-size); text-align: left;">
+                        💡 遍历动态二维数组时，用 <code>.length</code> 获取行数和每行元素数
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-11">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">06</span> 切片操作 — 没有内置语法</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <div class="card" style="border-color: var(--accent-orange); padding: 1.2rem;">
+                    <h3 style="color: var(--accent-orange);">⚠️ Solidity 没有内置切片语法！</h3>
+                    <p style="font-size: var(--body-size); margin-top: 0.5rem;">需要手动创建新数组并逐元素复制</p>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>对比其他语言</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th style="font-size: var(--body-size);">语言</th><th style="font-size: var(--body-size);">切片语法</th><th style="font-size: var(--body-size);">特点</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td style="font-size: var(--body-size);">Python</td><td style="font-size: var(--body-size);"><code>arr[1:3]</code></td><td style="font-size: var(--body-size);">返回视图</td></tr>
+                            <tr><td style="font-size: var(--body-size);">JavaScript</td><td style="font-size: var(--body-size);"><code>slice(1,3)</code></td><td style="font-size: var(--body-size);">返回新数组</td></tr>
+                            <tr><td style="font-size: var(--body-size);"><strong>Solidity</strong></td><td style="font-size: var(--body-size);"><strong>无内置语法</strong></td><td class="highlight" style="font-size: var(--body-size);">需要手动复制</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-12">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">06</span> 切片实现方式</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <h3>通用切片函数</h3>
+                <div class="code-block">
+<code><span class="kw">function</span> <span class="fn">getBytesSlice</span>(
+    <span class="kw">uint256</span> <span class="attr">_start</span>,
+    <span class="kw">uint256</span> <span class="attr">_length</span>
+) <span class="kw">public</span> <span class="kw">view</span> <span class="kw">returns</span> (<span class="kw">bytes</span> <span class="kw">memory</span>) {
+
+    <span class="fn">require</span>(<span class="attr">_start</span> + <span class="attr">_length</span> <= <span class="attr">dataBytes</span>.<span class="attr">length</span>, <span class="str">"Out of bounds"</span>);
+
+    <span class="cm">// 1. 创建新数组</span>
+    <span class="kw">bytes</span> <span class="attr">slice</span> = <span class="kw">new</span> <span class="kw">bytes</span>(<span class="attr">_length</span>);
+
+    <span class="cm">// 2. 逐字节复制</span>
+    <span class="kw">for</span> (<span class="kw">uint256</span> <span class="attr">i</span> = <span class="num">0</span>; <span class="attr">i</span> < <span class="attr">_length</span>; <span class="attr">i</span>++) {
+        <span class="attr">slice</span>[<span class="attr">i</span>] = <span class="attr">dataBytes</span>[<span class="attr">_start</span> + <span class="attr">i</span>];
+    }
+
+    <span class="kw">return</span> <span class="attr">slice</span>;
+}</code>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>string 切片需要先转 bytes</h3>
+                <div class="code-block">
+<code><span class="kw">function</span> <span class="fn">getStringSlice</span>(<span class="kw">uint256</span> <span class="attr">_start</span>, <span class="kw">uint256</span> <span class="attr">_length</span>)
+    <span class="kw">public</span> <span class="kw">view</span> <span class="kw">returns</span> (<span class="kw">string</span> <span class="kw">memory</span>) {
+
+    <span class="kw">bytes</span> <span class="attr">strBytes</span> = <span class="fn">bytes</span>(<span class="attr">dataString</span>);  <span class="cm">// 先转 bytes</span>
+    <span class="cm">// ... 同样的复制逻辑 ...</span>
+    <span class="kw">return</span> <span class="fn">string</span>(<span class="attr">slice</span>);
+}</code>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-13">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">06</span> 常用切片操作汇总</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <h3>基础切片操作</h3>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th style="font-size: var(--body-size);">操作</th><th style="font-size: var(--body-size);">方法名</th><th style="font-size: var(--body-size);">输入</th><th style="font-size: var(--body-size);">示例 "Hello"</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td style="font-size: var(--body-size);">获取切片</td><td style="font-size: var(--body-size);">getBytesSlice</td><td style="font-size: var(--body-size);">start, length</td><td style="font-size: var(--body-size);">slice(1,2) → "el"</td></tr>
+                            <tr><td style="font-size: var(--body-size);">获取前缀</td><td style="font-size: var(--body-size);">getBytesPrefix</td><td style="font-size: var(--body-size);">length</td><td style="font-size: var(--body-size);">prefix(3) → "Hel"</td></tr>
+                            <tr><td style="font-size: var(--body-size);">获取后缀</td><td style="font-size: var(--body-size);">getBytesSuffix</td><td style="font-size: var(--body-size);">length</td><td style="font-size: var(--body-size);">suffix(3) → "llo"</td></tr>
+                            <tr><td style="font-size: var(--body-size);">获取中间</td><td style="font-size: var(--body-size);">getBytesMiddle</td><td style="font-size: var(--body-size);">start, end</td><td style="font-size: var(--body-size);">middle(1,4) → "ell"</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>高级操作</h3>
+                <ul style="font-size: var(--body-size);">
+                    <li><code>extractBytes</code> — 提取指定索引的字节</li>
+                    <li><code>splitBytes</code> — 按分隔符分割</li>
+                    <li><code>replaceByte</code> — 替换字节</li>
+                    <li><code>reverseString</code> — 反转字符串</li>
+                    <li><code>removeSpaces</code> — 移除空格</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-14">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">07</span> 字符串高级操作</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <p style="color: var(--text-secondary); margin-bottom: var(--content-gap); text-align: left; font-size: var(--body-size);">
+                    Solidity 标准库<strong>不提供字符串操作</strong>，需要手动实现或使用库。
+                </p>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <h3>常见操作</h3>
+                <div class="card-grid">
+                    <div class="card" style="padding: 1.2rem;">
+                        <h3>字符串比较</h3>
+                        <div class="code-block" style="padding: 0.8rem; margin-top: 0.5rem;">
+<code><span class="fn">keccak256</span>(<span class="fn">bytes</span>(s1)) ==
+    <span class="fn">keccak256</span>(<span class="fn">bytes</span>(s2))</code>
+                        </div>
+                    </div>
+                    <div class="card" style="padding: 1.2rem;">
+                        <h3>字符串连接</h3>
+                        <div class="code-block" style="padding: 0.8rem; margin-top: 0.5rem;">
+<code><span class="kw">function</span> <span class="fn">concat</span>(s1, s2)
+    <span class="cm">// 手动分配新数组复制</span></code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%;">
+                <p style="color: var(--accent-orange); text-align: left; font-size: var(--body-size);">
+                    <strong>推荐：</strong>实际开发中使用 <span class="tag">OpenZeppelin Strings 库</span>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide content-left" id="slide-15">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="step-number">📝</span> 核心要点回顾</h2>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr><th style="font-size: var(--body-size);">知识点</th><th style="font-size: var(--body-size);">关键点</th></tr>
+                        </thead>
+                        <tbody>
+                            <tr><td style="font-size: var(--body-size);">string 长度</td><td style="font-size: var(--body-size);">必须先转 <code>bytes(str).length</code></td></tr>
+                            <tr><td style="font-size: var(--body-size);">字节 vs 字符</td><td style="font-size: var(--body-size);">中文需 <code>length / 3</code></td></tr>
+                            <tr><td style="font-size: var(--body-size);">string 本质</td><td style="font-size: var(--body-size);">就是只读的 bytes</td></tr>
+                            <tr><td style="font-size: var(--body-size);">string[]/bytes[]</td><td style="font-size: var(--body-size);">就是二维数组</td></tr>
+                            <tr><td style="font-size: var(--body-size);">bytes32 用途</td><td style="font-size: var(--body-size);">存哈希值/Token ID，不是长字符串</td></tr>
+                            <tr><td style="font-size: var(--body-size);">切片</td><td style="font-size: var(--body-size);">无内置语法，需手动复制</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="reveal" style="width: 100%; margin-top: var(--content-gap);">
+                <div class="card" style="border-color: var(--accent-green); padding: 1.2rem;">
+                    <h3 style="color: var(--accent-green);">最重要的原则</h3>
+                    <p style="font-size: var(--h3-size); margin-top: 0.5rem;">
+                        在 Solidity 中，<span class="highlight">所有字符串操作最终都是与 bytes 字节打交道</span>。
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="slide" id="slide-16">
+        <div class="slide-content">
+            <div class="reveal">
+                <h1>学习完成！</h1>
+                <p style="font-size: var(--h2-size); color: var(--text-secondary); margin: 1.5rem 0;">
+                    Day 07 - Solidity 高级数据类型
+                </p>
+            </div>
+            <div class="reveal" style="margin-top: 2rem;">
+                <p style="color: var(--text-muted); font-size: var(--body-size);">
+                    掌握 bytes、string、多维数组与切片操作<br>
+                    为后续智能合约开发打下坚实基础
+                </p>
+            </div>
+            <div class="reveal" style="margin-top: 3rem; color: var(--text-muted); font-size: var(--small-size);">
+                <p>按 ← → 键 或 滚轮 重新浏览</p>
+            </div>
+        </div>
+    </section>
+
+    </div>
+
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.container = document.getElementById('slidesContainer');
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.totalSlides = this.slides.length;
+
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.bindEvents();
+                this.updateSlide();
+            }
+
+            createNavDots() {
+                const navDots = document.getElementById('navDots');
+                this.slides.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot';
+                    dot.addEventListener('click', () => this.goToSlide(index));
+                    navDots.appendChild(dot);
+                });
+            }
+
+            bindEvents() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+
+                this.container.addEventListener('scroll', () => {
+                    this.onScroll();
+                });
+
+                let touchStartY = 0;
+                this.container.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                });
+                this.container.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchStartY - touchEndY;
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) this.nextSlide();
+                        else this.prevSlide();
+                    }
+                });
+            }
+
+            onScroll() {
+                const scrollTop = this.container.scrollTop;
+                const slideHeight = window.innerHeight;
+                const newSlide = Math.round(scrollTop / slideHeight);
+
+                if (newSlide !== this.currentSlide && newSlide >= 0 && newSlide < this.totalSlides) {
+                    this.currentSlide = newSlide;
+                    this.updateSlide();
+                }
+            }
+
+            updateSlide() {
+                const progress = ((this.currentSlide + 1) / this.totalSlides) * 100;
+                document.getElementById('progressBar').style.width = `${progress}%`;
+
+                document.querySelectorAll('.nav-dot').forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentSlide);
+                });
+
+                this.slides.forEach((slide, index) => {
+                    slide.classList.toggle('visible', index === this.currentSlide);
+                });
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.currentSlide++;
+                    this.scrollToSlide();
+                    this.updateSlide();
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.currentSlide--;
+                    this.scrollToSlide();
+                    this.updateSlide();
+                }
+            }
+
+            scrollToSlide() {
+                const slideHeight = window.innerHeight;
+                this.container.scrollTo({
+                    top: this.currentSlide * slideHeight,
+                    behavior: 'smooth'
+                });
+            }
+
+            goToSlide(index) {
+                this.currentSlide = index;
+                this.scrollToSlide();
+                this.updateSlide();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>
