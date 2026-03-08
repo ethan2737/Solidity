@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solidity 构造函数、字节码与以太币接收</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===========================================
+           NEON CYBER 主题变量
+           =========================================== */
+        :root {
+            --bg-primary: #0a0a1a;
+            --bg-secondary: #12122a;
+            --bg-card: #1a1a3a;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0c0;
+            --accent: #00ffcc;
+            --accent-glow: rgba(0, 255, 204, 0.4);
+            --accent-secondary: #ff00aa;
+            --accent-secondary-glow: rgba(255, 0, 170, 0.3);
+            --code-bg: #0d0d20;
+            --border-glow: rgba(0, 255, 204, 0.3);
+
+            --font-display: 'Orbitron', 'Noto Sans SC', sans-serif;
+            --font-body: 'Noto Sans SC', sans-serif;
+            --font-mono: 'Consolas', 'Monaco', monospace;
+
+            --title-size: clamp(2.8rem, 8vw, 5.5rem);
+            --h2-size: clamp(2rem, 5.5vw, 3.5rem);
+            --h3-size: clamp(1.5rem, 3.5vw, 2rem);
+            --body-size: clamp(1.1rem, 2vw, 1.5rem);
+            --code-size: clamp(0.9rem, 1.6vw, 1.2rem);
+
+            --slide-padding: clamp(1.5rem, 5vw, 4rem);
+            --content-gap: clamp(1rem, 2.5vw, 2.5rem);
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.7s;
+            --duration-fast: 0.4s;
+        }
+
+        /* ===========================================
+           基础样式
+           =========================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        /* ===========================================
+           幻灯片容器
+           =========================================== */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            max-height: 100%;
+            overflow: hidden;
+            text-align: center;
+            width: 100%;
+        }
+
+        .slide-content > * {
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* ===========================================
+           背景效果
+           =========================================== */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(0, 255, 204, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255, 0, 170, 0.05) 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            z-index: -1;
+        }
+
+        .grid-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(0, 255, 204, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 204, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            z-index: -1;
+        }
+
+        /* ===========================================
+           排版样式
+           =========================================== */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 900;
+            color: var(--text-primary);
+            text-shadow: 0 0 30px var(--accent-glow), 0 0 60px var(--accent-glow);
+            margin-bottom: var(--content-gap);
+            letter-spacing: 0.05em;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 700;
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--accent-glow);
+            margin-bottom: var(--content-gap);
+            text-align: center;
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+
+        .subtitle {
+            font-size: clamp(1.3rem, 3.5vw, 2rem);
+            color: var(--text-secondary);
+            font-weight: 300;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 700;
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .highlight-pink {
+            color: var(--accent-secondary);
+            font-weight: 700;
+            text-shadow: 0 0 10px var(--accent-secondary-glow);
+        }
+
+        /* ===========================================
+           代码块样式
+           =========================================== */
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border-glow);
+            border-radius: 8px;
+            padding: clamp(1rem, 2.5vw, 2rem);
+            text-align: left;
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            color: var(--text-primary);
+            overflow-x: auto;
+            box-shadow: 0 0 20px rgba(0, 255, 204, 0.1);
+            max-width: 90%;
+            margin: 0.8rem auto;
+        }
+
+        .code-block .keyword { color: var(--accent-secondary); }
+        .code-block .function { color: var(--accent); }
+        .code-block .comment { color: #666; font-style: italic; }
+        .code-block .string { color: #ffd700; }
+        .code-block .number { color: #ff6b6b; }
+
+        /* ===========================================
+           卡片网格
+           =========================================== */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(280px, 45%), 1fr));
+            gap: clamp(0.8rem, 2vw, 1.5rem);
+            width: 100%;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-glow);
+            border-radius: 12px;
+            padding: clamp(1.3rem, 2.5vw, 2rem);
+            text-align: left;
+            transition: transform var(--duration-fast) var(--ease-out-expo),
+                        box-shadow var(--duration-fast) var(--ease-out-expo);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px var(--accent-glow);
+        }
+
+        .card h3 {
+            color: var(--accent);
+            font-size: var(--h3-size);
+            margin-bottom: 0.5rem;
+        }
+
+        .card p {
+            font-size: var(--body-size);
+            margin-bottom: 0;
+        }
+
+        /* ===========================================
+           列表样式
+           =========================================== */
+        .feature-list {
+            list-style: none;
+            text-align: left;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .feature-list li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            padding: 0.8rem 0;
+            padding-left: 2rem;
+            position: relative;
+            margin-bottom: 0.4rem;
+        }
+
+        .feature-list li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-size: 1.2rem;
+        }
+
+        /* ===========================================
+           表格样式
+           =========================================== */
+        .comparison-table {
+            width: 100%;
+            max-width: 900px;
+            border-collapse: collapse;
+            margin: 0 auto;
+            font-size: var(--body-size);
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: clamp(0.8rem, 2vw, 1.4rem);
+            text-align: left;
+            border: 1px solid var(--border-glow);
+        }
+
+        .comparison-table th {
+            background: var(--bg-card);
+            color: var(--accent);
+            font-family: var(--font-display);
+            font-weight: 700;
+        }
+
+        .comparison-table td {
+            background: var(--bg-secondary);
+            color: var(--text-secondary);
+        }
+
+        /* ===========================================
+           流程图样式
+           =========================================== */
+        .flow-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .flow-step {
+            background: var(--bg-card);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: clamp(0.7rem, 2vw, 1.2rem) clamp(1rem, 2.5vw, 1.8rem);
+            color: var(--accent);
+            font-family: var(--font-display);
+            font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+            font-weight: 700;
+            text-align: center;
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .flow-arrow {
+            color: var(--accent-secondary);
+            font-size: 2rem;
+        }
+
+        /* ===========================================
+           动画效果
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide.visible .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .slide.visible .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .slide.visible .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .slide.visible .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .slide.visible .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .slide.visible .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        .pulse {
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* ===========================================
+           导航元素
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+            z-index: 1000;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--bg-card);
+            border: 2px solid var(--accent);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .nav-dot:hover {
+            transform: scale(1.3);
+        }
+
+        /* ===========================================
+           响应式调整
+           =========================================== */
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(1rem, 3vw, 2rem);
+                --content-gap: clamp(0.5rem, 1.5vw, 1rem);
+                --title-size: clamp(2rem, 6vw, 3.5rem);
+                --h2-size: clamp(1.5rem, 4vw, 2.5rem);
+                --h3-size: clamp(1.2rem, 3vw, 1.6rem);
+                --body-size: clamp(0.9rem, 1.8vw, 1.2rem);
+            }
+            .card { padding: 1rem; }
+            .code-block { padding: 0.8rem; }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --title-size: clamp(2rem, 10vw, 3.5rem);
+                --h2-size: clamp(1.6rem, 7vw, 2.5rem);
+                --h3-size: clamp(1.2rem, 4vw, 1.6rem);
+                --body-size: clamp(0.9rem, 2.5vw, 1.2rem);
+                --code-size: clamp(0.75rem, 1.8vw, 1rem);
+            }
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+            .nav-dots {
+                right: 10px;
+            }
+        }
+
+        /* ===========================================
+           键盘提示
+           =========================================== */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-secondary);
+            font-size: 1rem;
+            opacity: 0.6;
+        }
+
+        @media (max-width: 600px) {
+            .keyboard-hint { display: none; }
+        }
+
+        /* ===========================================
+           减少动画
+           =========================================== */
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+            html {
+                scroll-behavior: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 进度条 -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- 导航点 -->
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- 键盘提示 -->
+    <div class="keyboard-hint">← → 键或滚轮导航 | 空格键下一页</div>
+
+    <!-- ===== 幻灯片 1: 封面 ===== -->
+    <section class="slide" id="slide-1">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h1 class="reveal">Solidity</h1>
+            <h2 class="reveal" style="font-size: clamp(1.2rem, 4vw, 2rem); margin-bottom: 2rem;">构造函数、字节码与以太币接收</h2>
+            <p class="reveal subtitle">Day 10 学习笔记</p>
+            <p class="reveal" style="margin-top: 2rem; font-size: 0.9rem;">
+                <span class="highlight">构造函数</span> ·
+                <span class="highlight">字节码</span> ·
+                <span class="highlight-pink">receive/fallback</span>
+            </p>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 2: 目录 ===== -->
+    <section class="slide" id="slide-2">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">📋 内容目录</h2>
+            <div class="card-grid" style="margin-top: 2rem;">
+                <div class="card reveal">
+                    <h3>01</h3>
+                    <p>构造函数基础</p>
+                </div>
+                <div class="card reveal">
+                    <h3>02</h3>
+                    <p>部署 vs 运行时字节码</p>
+                </div>
+                <div class="card reveal">
+                    <h3>03</h3>
+                    <p>constant 与 immutable</p>
+                </div>
+                <div class="card reveal">
+                    <h3>04</h3>
+                    <p>24KB 字节码限制</p>
+                </div>
+                <div class="card reveal">
+                    <h3>05</h3>
+                    <p>receive() 函数</p>
+                </div>
+                <div class="card reveal">
+                    <h3>06</h3>
+                    <p>fallback() 函数</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 3: 什么是构造函数 ===== -->
+    <section class="slide" id="slide-3">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">🔧 什么是构造函数？</h2>
+            <div style="max-width: 900px; margin: 2rem auto; text-align: left;">
+                <div class="code-block reveal">
+<span class="comment">// 使用 constructor 关键字定义构造函数</span>
+<span class="keyword">constructor</span>(<span class="keyword">uint256</span> _initialValue) {
+    owner = <span class="keyword">msg.sender</span>;  <span class="comment">// 设置合约部署者为所有者</span>
+    initialValue = _initialValue;  <span class="comment">// 初始化状态变量</span>
+}
+                </div>
+            </div>
+            <ul class="feature-list reveal" style="margin-top: 1.5rem;">
+                <li>在<span class="highlight">合约部署时自动执行一次</span></li>
+                <li>用于<span class="highlight">初始化状态变量</span></li>
+                <li>整个合约生命周期<span class="highlight">只执行一次</span></li>
+                <li>可以带参数，支持参数验证</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 4: 构造函数类型 ===== -->
+    <section class="slide" id="slide-4">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">📝 构造函数的类型</h2>
+            <div class="card-grid" style="margin-top: 1.5rem;">
+                <div class="card reveal">
+                    <h3>无参数构造函数</h3>
+                    <p class="code-block" style="margin: 0.5rem 0; padding: 0.5rem;">
+<span class="keyword">constructor</span>() {
+    owner = <span class="keyword">msg.sender</span>;
+}
+                    </p>
+                </div>
+                <div class="card reveal">
+                    <h3>带参数构造函数</h3>
+                    <p class="code-block" style="margin: 0.5rem 0; padding: 0.5rem;">
+<span class="keyword">constructor</span>(<span class="keyword">uint256</span> _value) {
+    initialValue = _value;
+}
+                    </p>
+                </div>
+            </div>
+            <p class="reveal" style="margin-top: 1.5rem; color: var(--accent);">
+                ⚠️ 每个合约只能有一个构造函数
+            </p>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 5: 部署 vs 运行时字节码 ===== -->
+    <section class="slide" id="slide-5">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">⚡ 部署字节码 vs 运行时字节码</h2>
+            <table class="comparison-table reveal" style="margin-top: 1.5rem;">
+                <thead>
+                    <tr>
+                        <th>属性</th>
+                        <th>部署字节码</th>
+                        <th>运行时字节码</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>执行时机</td>
+                        <td>部署时执行一次</td>
+                        <td>每次调用函数时执行</td>
+                    </tr>
+                    <tr>
+                        <td>是否持久化</td>
+                        <td>部署后丢弃</td>
+                        <td>永久存储在区块链上</td>
+                    </tr>
+                    <tr>
+                        <td>包含内容</td>
+                        <td>构造函数代码 + 创建逻辑</td>
+                        <td>合约所有功能代码</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="flow-container reveal" style="margin-top: 2rem;">
+                <div class="flow-step">部署交易</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">部署字节码执行</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step">运行时字节码存入链</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step" style="border-color: var(--accent-secondary);">合约创建成功</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 6: constant 常量 ===== -->
+    <section class="slide" id="slide-6">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">💎 constant 常量</h2>
+            <p class="reveal" style="text-align: left; max-width: 800px; margin: 0 auto 1.5rem;">
+                在<span class="highlight">编译时</span>就确定值的变量，值<span class="highlight">永远不会改变</span>
+            </p>
+            <div class="code-block reveal">
+<span class="comment">// 定义常量 - 值在编译时确定</span>
+<span class="keyword">uint256</span> <span class="keyword">public constant</span> MAX_SUPPLY = <span class="number">10000</span>;
+<span class="keyword">address</span> <span class="keyword">public constant</span> TREASURY = <span class="string">0x1234...</span>;
+<span class="keyword">string</span> <span class="keyword">public constant</span> TOKEN_NAME = <span class="string">"MyToken"</span>;
+            </div>
+            <ul class="feature-list reveal" style="margin-top: 1.5rem;">
+                <li>值在<span class="highlight">编译时</span>确定，不能使用运行时变量</li>
+                <li><span class="highlight">不占用存储槽</span>，节省 Gas</li>
+                <li>赋值时只能使用<span class="highlight">字面量</span>或<span class="highlight">常量表达式</span></li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 7: immutable 不可变量 ===== -->
+    <section class="slide" id="slide-7">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">🔒 immutable 不可变量</h2>
+            <p class="reveal" style="text-align: left; max-width: 800px; margin: 0 auto 1.5rem;">
+                在<span class="highlight-pink">部署时</span>（构造函数中）赋值一次，之后<span class="highlight-pink">不能改变</span>
+            </p>
+            <div class="code-block reveal">
+<span class="comment">// 定义不可变量</span>
+<span class="keyword">address</span> <span class="keyword">public immutable</span> owner;
+<span class="keyword">uint256</span> <span class="keyword">public immutable</span> launchDate;
+
+<span class="comment">// 在构造函数中赋值 - 只能在构造函数中赋值一次</span>
+<span class="keyword">constructor</span>() {
+    owner = <span class="keyword">msg.sender</span>;           <span class="comment">// 部署时赋值</span>
+    launchDate = <span class="keyword">block.timestamp</span>;  <span class="comment">// 可使用运行时变量</span>
+}
+            </div>
+            <ul class="feature-list reveal" style="margin-top: 1.5rem;">
+                <li>值在<span class="highlight-pink">部署时</span>（构造函数中）赋值</li>
+                <li>可以使用<span class="highlight-pink">运行时变量</span>赋值（msg.sender、block.timestamp）</li>
+                <li><span class="highlight-pink">不占用存储槽</span>，节省 Gas</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 8: constant vs immutable 对比 ===== -->
+    <section class="slide" id="slide-8">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">⚖️ constant vs immutable 对比</h2>
+            <table class="comparison-table reveal" style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>特性</th>
+                        <th>constant</th>
+                        <th>immutable</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>赋值时机</td>
+                        <td>编译时</td>
+                        <td>部署时（构造函数中）</td>
+                    </tr>
+                    <tr>
+                        <td>可使用运行时变量</td>
+                        <td>❌ 不可</td>
+                        <td>✅ 可以</td>
+                    </tr>
+                    <tr>
+                        <td>存储位置</td>
+                        <td>不占存储槽</td>
+                        <td>不占存储槽</td>
+                    </tr>
+                    <tr>
+                        <td>Gas 消耗</td>
+                        <td>最省（内联到字节码）</td>
+                        <td>较省</td>
+                    </tr>
+                    <tr>
+                        <td>使用场景</td>
+                        <td>值固定不变</td>
+                        <td>部署时确定、之后不变</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 9: 24KB 限制 ===== -->
+    <section class="slide" id="slide-9">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">📦 字节码大小与 24KB 限制</h2>
+            <div class="card-grid" style="margin-top: 1.5rem;">
+                <div class="card reveal">
+                    <h3>EIP-170</h3>
+                    <p style="font-size: 1.5rem; color: var(--accent); font-weight: bold;">24KB</p>
+                    <p>合约字节码大小上限</p>
+                </div>
+                <div class="card reveal">
+                    <h3>Gas 消耗</h3>
+                    <p style="font-size: 1.5rem; color: var(--accent); font-weight: bold;">~200 Gas</p>
+                    <p>每个字节码字节</p>
+                </div>
+            </div>
+            <ul class="feature-list reveal" style="margin-top: 1.5rem;">
+                <li>超过 24KB 限制的合约<span class="highlight">无法部署</span></li>
+                <li>字节码越大，<span class="highlight">部署成本越高</span></li>
+                <li>优化方法：减少状态变量、使用 constant/immutable、合理函数可见性</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 10: receive() 函数 ===== -->
+    <section class="slide" id="slide-10">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">📥 receive() 函数</h2>
+            <p class="reveal" style="text-align: left; max-width: 800px; margin: 0 auto 1rem;">
+                <span class="highlight">专门用于接收纯以太币转账</span>（不带任何数据）
+            </p>
+            <div class="code-block reveal">
+<span class="comment">// receive() 函数必须声明为 payable</span>
+<span class="function">receive</span>() <span class="keyword">external payable</span> {
+    <span class="comment">// 处理收到的以太币</span>
+    totalReceived += <span class="keyword">msg.value</span>;
+}
+            </div>
+            <div class="flow-container reveal" style="margin-top: 1.5rem;">
+                <div class="flow-step">transfer()</div>
+                <span class="flow-arrow">/</span>
+                <div class="flow-step">send()</div>
+                <span class="flow-arrow">/</span>
+                <div class="flow-step">call{value: x}("")</div>
+                <span class="flow-arrow">→</span>
+                <div class="flow-step" style="border-color: var(--accent);">receive()</div>
+            </div>
+            <p class="reveal" style="margin-top: 1rem; font-size: 1.1rem;">
+                优先匹配：当收到<span class="highlight">纯 ETH 转账</span>时，优先调用 receive()
+            </p>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 11: fallback() 函数 ===== -->
+    <section class="slide" id="slide-11">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">🔄 fallback() 函数</h2>
+            <p class="reveal" style="text-align: left; max-width: 800px; margin: 0 auto 1rem;">
+                <span class="highlight-pink">备用/兜底函数</span>，处理未知函数调用和带数据的 ETH 转账
+            </p>
+            <div class="code-block reveal">
+<span class="comment">// fallback() 函数必须声明为 payable（如果要接收以太币）</span>
+<span class="function">fallback</span>() <span class="keyword">external payable</span> {
+    <span class="comment">// 处理未知函数调用或带数据的以太币转账</span>
+    totalReceived += <span class="keyword">msg.value</span>;
+}
+            </div>
+            <ul class="feature-list reveal" style="margin-top: 1rem;">
+                <li>调用<span class="highlight-pink">不存在的函数</span></li>
+                <li>调用函数但<span class="highlight-pink">数据格式不对</span></li>
+                <li>有<span class="highlight-pink">数据的 ETH 转账</span>（如果没有 receive()）</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 12: 触发流程 ===== -->
+    <section class="slide" id="slide-12">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">🔀 触发流程</h2>
+            <div class="card-grid" style="margin-top: 1rem;">
+                <div class="card reveal">
+                    <h3>发送 ETH 到合约</h3>
+                    <div class="code-block" style="margin: 0.5rem 0; font-size: 0.75rem; padding: 0.5rem;">
+有 data 吗？<br>
+↙<br>
+有 → fallback()<br>
+↘<br>
+没有 → 有 receive 吗？<br>
+&nbsp;&nbsp;↙ &nbsp;&nbsp;&nbsp;&nbsp;↘<br>
+&nbsp;有 &nbsp;&nbsp;&nbsp;&nbsp;没有<br>
+&nbsp;↓ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+receive() revert
+                    </div>
+                </div>
+                <div class="card reveal">
+                    <h3>调用合约函数</h3>
+                    <div class="code-block" style="margin: 0.5rem 0; font-size: 0.75rem; padding: 0.5rem;">
+函数存在吗？<br>
+↙ &nbsp;&nbsp;&nbsp;&nbsp;↘<br>
+是 &nbsp;&nbsp;&nbsp;&nbsp;否<br>
+↓ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+正常执行 fallback()
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 13: 发送 ETH 的三种方式 ===== -->
+    <section class="slide" id="slide-13">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">💸 发送 ETH 的三种方式</h2>
+            <table class="comparison-table reveal" style="margin-top: 1rem;">
+                <thead>
+                    <tr>
+                        <th>方式</th>
+                        <th>语法</th>
+                        <th>Gas 限制</th>
+                        <th>特点</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span style="color: #ff6b6b;">transfer</span></td>
+                        <td>to.transfer(amount)</td>
+                        <td>2300 Gas</td>
+                        <td>旧版，有重入风险</td>
+                    </tr>
+                    <tr>
+                        <td><span style="color: #ffd700;">send</span></td>
+                        <td>to.send(amount)</td>
+                        <td>2300 Gas</td>
+                        <td>旧版，返回布尔值</td>
+                    </tr>
+                    <tr>
+                        <td><span class="highlight">call</span></td>
+                        <td>to.call{value: amount}("")</td>
+                        <td>无限制</td>
+                        <td>✅ 新版推荐</td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="reveal" style="margin-top: 1.5rem; color: var(--accent); font-weight: bold;">
+                ✓ 推荐使用 call：无 Gas 限制，更安全，返回值清晰
+            </p>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 14: 应用场景 ===== -->
+    <section class="slide" id="slide-14">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">🏢 应用场景</h2>
+            <div class="card-grid" style="margin-top: 1.5rem;">
+                <div class="card reveal">
+                    <h3>ICO</h3>
+                    <p>接收投资，分配代币</p>
+                </div>
+                <div class="card reveal">
+                    <h3>钱包合约</h3>
+                    <p>接收资金，多签钱包功能</p>
+                </div>
+                <div class="card reveal">
+                    <h3>捐赠合约</h3>
+                    <p>接收捐赠，提取资金到受益人地址</p>
+                </div>
+            </div>
+            <div class="code-block reveal" style="margin-top: 1.5rem;">
+<span class="comment">// 完整示例：捐赠合约提取资金</span>
+<span class="keyword">function</span> <span class="function">withdraw</span>() <span class="keyword">public</span> {
+    require(<span class="keyword">msg.sender</span> == owner, <span class="string">"Only owner"</span>);
+    (<span class="keyword">bool</span> success, ) = payable(beneficiary).<span class="function">call</span>{value: <span class="keyword">address</span>(<span class="keyword">this</span>).balance}(<span class="string">""</span>);
+    require(success, <span class="string">"Transfer failed"</span>);
+}
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 15: 注意事项 ===== -->
+    <section class="slide" id="slide-15">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">⚠️ 注意事项</h2>
+            <div class="card-grid" style="margin-top: 1rem;">
+                <div class="card reveal">
+                    <h3>如果没有 receive/fallback？</h3>
+                    <p>❌ 交易失败，ETH 退回</p>
+                </div>
+                <div class="card reveal">
+                    <h3>发送 ETH 两个层面</h3>
+                    <p>客户端：sendTransaction<br>合约内：transfer/send/call</p>
+                </div>
+                <div class="card reveal">
+                    <h3>安全建议</h3>
+                    <p>✅ 推荐使用 call<br>✅ 检查返回值<br>✅ 防止重入攻击</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 幻灯片 16: 总结 ===== -->
+    <section class="slide" id="slide-16">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">📌 总结</h2>
+            <ul class="feature-list reveal" style="margin-top: 1rem;">
+                <li><span class="highlight">构造函数</span>：合约部署时执行一次，用于初始化</li>
+                <li><span class="highlight">部署字节码</span>：包含构造函数代码，部署后丢弃</li>
+                <li><span class="highlight">运行时字节码</span>：永久存储在区块链上</li>
+                <li><span class="highlight">constant</span>：编译时确定，不占存储槽</li>
+                <li><span class="highlight-pink">immutable</span>：部署时确定，不占存储槽</li>
+                <li><span class="highlight">24KB 限制</span>：EIP-170 规定的字节码上限</li>
+                <li><span class="highlight">receive()</span>：收钱函数，只处理纯 ETH</li>
+                <li><span class="highlight-pink">fallback()</span>：兜底函数，处理未知调用</li>
+                <li><span class="highlight">call</span>：推荐发送 ETH 方式，无 Gas 限制</li>
+            </ul>
+            <p class="reveal pulse" style="margin-top: 2rem; color: var(--accent); font-size: 1.2rem;">
+                🎉 学习完成！
+            </p>
+        </div>
+    </section>
+
+    <script>
+        /* ===========================================
+           幻灯片演示控制器
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.totalSlides = this.slides.length;
+
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.bindEvents();
+                this.updateProgress();
+                this.checkVisibility();
+            }
+
+            // 创建导航点
+            createNavDots() {
+                const navDots = document.getElementById('navDots');
+                navDots.innerHTML = '';
+
+                for (let i = 0; i < this.totalSlides; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    navDots.appendChild(dot);
+                }
+            }
+
+            // 绑定事件
+            bindEvents() {
+                // 键盘导航
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+
+                // 滚轮导航
+                let scrollTimeout;
+                document.addEventListener('wheel', (e) => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        if (e.deltaY > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }, 50);
+                }, { passive: true });
+
+                // 触摸导航
+                let touchStartY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchStartY - touchEndY;
+
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }
+                }, { passive: true });
+
+                // 滚动监听
+                this.setupIntersectionObserver();
+            }
+
+            // Intersection Observer
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const slideIndex = Array.from(this.slides).indexOf(entry.target);
+                            this.currentSlide = slideIndex;
+                            this.updateProgress();
+                            this.updateNavDots();
+                            this.checkVisibility();
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            // 检查可见性
+            checkVisibility() {
+                this.slides.forEach((slide, index) => {
+                    if (index === this.currentSlide) {
+                        slide.classList.add('visible');
+                    } else {
+                        slide.classList.remove('visible');
+                    }
+                });
+            }
+
+            // 更新进度条
+            updateProgress() {
+                const progress = ((this.currentSlide + 1) / this.totalSlides) * 100;
+                document.getElementById('progressBar').style.width = progress + '%';
+            }
+
+            // 更新导航点
+            updateNavDots() {
+                const dots = document.querySelectorAll('.nav-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentSlide);
+                });
+            }
+
+            // 跳转到指定幻灯片
+            goToSlide(index) {
+                if (index >= 0 && index < this.totalSlides) {
+                    this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            // 下一页
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            // 上一页
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>

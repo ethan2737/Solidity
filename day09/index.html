@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solidity 函数修改器（Modifier）学习</title>
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=notion-sans@400,500,700&display=swap">
+    <style>
+        /* ===========================================
+           基础样式配置
+           =========================================== */
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent: #38bdf8;
+            --accent-warm: #fb923c;
+            --accent-success: #4ade80;
+            --accent-purple: #a78bfa;
+            --code-bg: #0d1117;
+            --code-text: #e6edf3;
+            --code-keyword: #ff7b72;
+            --code-string: #a5d6ff;
+            --code-comment: #8b949e;
+
+            --font-display: 'Clash Display', 'Notion Sans', sans-serif;
+            --font-body: 'Notion Sans', sans-serif;
+            --font-code: 'JetBrains Mono', 'Fira Code', monospace;
+
+            --title-size: clamp(2rem, 5vw, 4.5rem);
+            --h2-size: clamp(1.5rem, 3.5vw, 3rem);
+            --h3-size: clamp(1.2rem, 2.5vw, 2rem);
+            --body-size: clamp(1rem, 1.8vw, 1.5rem);
+            --code-size: clamp(0.8rem, 1.3vw, 1.1rem);
+            --small-size: clamp(0.75rem, 1.2vw, 1rem);
+
+            --slide-padding: clamp(2rem, 5vw, 5rem);
+            --content-gap: clamp(1rem, 2vw, 2.5rem);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        /* ===========================================
+           幻灯片容器
+           =========================================== */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            text-align: center;
+            align-items: center;
+        }
+
+        /* ===========================================
+           背景效果
+           =========================================== */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(56, 189, 248, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(251, 146, 60, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===========================================
+           排版样式
+           =========================================== */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 700;
+            margin-bottom: var(--content-gap);
+            background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 600;
+            margin-bottom: var(--content-gap);
+            color: var(--text-primary);
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--accent);
+        }
+
+        p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            max-width: 800px;
+            margin: 0.5rem 0;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .highlight-warm {
+            color: var(--accent-warm);
+            font-weight: 600;
+        }
+
+        .highlight-success {
+            color: var(--accent-success);
+            font-weight: 600;
+        }
+
+        .highlight-purple {
+            color: var(--accent-purple);
+            font-weight: 600;
+        }
+
+        /* ===========================================
+           代码块样式
+           =========================================== */
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            text-align: left;
+            max-width: 950px;
+            width: 100%;
+            overflow-x: auto;
+            overflow-y: auto;
+            font-family: var(--font-code);
+            font-size: var(--code-size);
+            line-height: 1.6;
+            margin: 1rem 0;
+            white-space: pre;
+        }
+
+        .code-block.small-code {
+            font-size: clamp(0.65rem, 1.1vw, 0.9rem);
+            line-height: 1.5;
+            padding: 0.75rem 1rem;
+        }
+
+        .code-block .keyword {
+            color: var(--code-keyword);
+        }
+
+        .code-block .string {
+            color: var(--code-string);
+        }
+
+        .code-block .comment {
+            color: var(--code-comment);
+            font-style: italic;
+        }
+
+        .code-block .function {
+            color: var(--accent-success);
+        }
+
+        .code-block .type {
+            color: var(--accent-purple);
+        }
+
+        /* ===========================================
+           列表样式
+           =========================================== */
+        .feature-list, .bullet-list {
+            list-style: none;
+            text-align: left;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        .feature-list li, .bullet-list li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            padding-left: 1.5rem;
+            position: relative;
+            line-height: 1.5;
+        }
+
+        .feature-list li::before, .bullet-list li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .feature-list li strong {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* ===========================================
+           卡片网格
+           =========================================== */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            max-width: 1100px;
+            width: 100%;
+            text-align: left;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+        }
+
+        .card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .card p {
+            font-size: var(--small-size);
+            margin: 0;
+        }
+
+        /* ===========================================
+           表格样式
+           =========================================== */
+        .table-container {
+            max-width: 1000px;
+            width: 100%;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--small-size);
+        }
+
+        th, td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            color: var(--accent);
+            font-weight: 600;
+            font-size: var(--body-size);
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* ===========================================
+           动画效果
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide.visible .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .slide.visible .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .slide.visible .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .slide.visible .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .slide.visible .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .slide.visible .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        /* ===========================================
+           导航指示器
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-purple));
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot:hover {
+            background: rgba(255, 255, 255, 0.4);
+        }
+
+        .nav-dot.active {
+            background: var(--accent);
+            transform: scale(1.3);
+        }
+
+        /* ===========================================
+           页码
+           =========================================== */
+        .slide-number {
+            position: absolute;
+            bottom: 2rem;
+            right: 2rem;
+            font-size: var(--small-size);
+            color: var(--text-secondary);
+            opacity: 0.5;
+        }
+
+        /* ===========================================
+           代码行号
+           =========================================== */
+        .code-line {
+            display: flex;
+            line-height: 1.6;
+            white-space: pre;
+        }
+
+        .line-number {
+            color: var(--code-comment);
+            min-width: 2.5rem;
+            text-align: right;
+            padding-right: 1rem;
+            user-select: none;
+            opacity: 0.5;
+            flex-shrink: 0;
+        }
+
+        .line-content {
+            flex: 1;
+            white-space: pre;
+            overflow-x: visible;
+        }
+
+        /* ===========================================
+           重点强调框
+           =========================================== */
+        .focus-box {
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(167, 139, 250, 0.1));
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 900px;
+            width: 100%;
+            margin: 1rem 0;
+        }
+
+        .focus-box h3 {
+            margin-bottom: 1rem;
+        }
+
+        /* ===========================================
+           两栏布局
+           =========================================== */
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1100px;
+            width: 100%;
+            text-align: left;
+        }
+
+        .column {
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+
+        .column h3 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ===========================================
+           响应式
+           =========================================== */
+        @media (max-width: 768px) {
+            .two-column {
+                grid-template-columns: 1fr;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .code-block {
+                font-size: 0.7rem;
+                padding: 0.75rem;
+            }
+
+            .code-block.small-code {
+                font-size: 0.6rem;
+            }
+
+            .nav-dots {
+                display: none;
+            }
+        }
+
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: 1.5rem;
+                --content-gap: 1rem;
+            }
+
+            .code-block {
+                padding: 0.75rem;
+                font-size: 0.7rem;
+                line-height: 1.4;
+            }
+
+            .code-block.small-code {
+                font-size: 0.6rem;
+                max-height: 50vh;
+            }
+        }
+
+        /* 减少动画 */
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                transition: opacity 0.3s ease;
+                transform: none;
+            }
+
+            html {
+                scroll-behavior: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- Slide 1: 标题页 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h1 class="reveal">Solidity 函数修改器</h1>
+            <h2 class="reveal" style="font-size: var(--h3-size); color: var(--accent);">Modifier 完整指南</h2>
+            <p class="reveal" style="margin-top: 2rem;">智能合约开发必备技能</p>
+            <p class="reveal" style="font-size: var(--small-size);">第 9 天学习</p>
+        </div>
+        <span class="slide-number">1 / 11</span>
+    </section>
+
+    <!-- Slide 2: 背景介绍 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">什么是 Modifier？</h2>
+            <div class="focus-box reveal">
+                <h3 style="font-size: var(--h3-size);">函数修改器（Modifier）</h3>
+                <p style="font-size: var(--body-size); color: var(--text-primary);">
+                    Solidity 中用于<strong class="highlight">修改函数行为</strong>的特殊代码块
+                </p>
+                <p style="font-size: var(--body-size); color: var(--text-primary); margin-top: 1rem;">
+                    可以在函数执行<strong class="highlight-warm">前</strong>或<strong class="highlight-warm">后</strong>自动执行特定的检查逻辑
+                </p>
+            </div>
+            <ul class="feature-list reveal" style="margin-top: 1.5rem;">
+                <li><strong>代码复用</strong> — 避免重复的验证逻辑</li>
+                <li><strong>访问控制</strong> — 限制谁可以调用某些函数</li>
+                <li><strong>状态检查</strong> — 在特定状态下允许或禁止操作</li>
+            </ul>
+        </div>
+        <span class="slide-number">2 / 11</span>
+    </section>
+
+    <!-- Slide 3: 基本结构 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">Modifier 基本结构</h2>
+            <div class="code-block reveal">
+                <div class="code-line"><span class="line-number">1</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">modifierName</span>() {</span></div>
+                <div class="code-line"><span class="line-number">2</span><span class="line-content">    <span class="comment">// 前置检查逻辑</span></span></div>
+                <div class="code-line"><span class="line-number">3</span><span class="line-content">    <span class="function">require</span>(...);</span></div>
+                <div class="code-line"><span class="line-number">4</span><span class="line-content">    <span class="keyword">_</span>;  <span class="comment">// 函数体执行位置（关键！）</span></span></div>
+                <div class="code-line"><span class="line-number">5</span><span class="line-content">    <span class="comment">// 后置逻辑（可选）</span></span></div>
+                <div class="code-line"><span class="line-number">6</span><span class="line-content">}</span></div>
+            </div>
+            <div class="focus-box reveal" style="margin-top: 1rem;">
+                <p style="font-size: var(--body-size); color: var(--text-primary);">
+                    <strong class="highlight">_;</strong> 是占位符，表示被修饰的函数体执行的位置
+                </p>
+            </div>
+        </div>
+        <span class="slide-number">3 / 11</span>
+    </section>
+
+    <!-- Slide 4: 基础权限控制 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">类型一：基础权限控制</h2>
+            <div class="code-block reveal">
+                <div class="code-line"><span class="line-number">1</span><span class="line-content"><span class="comment">// 只有合约所有者可以调用</span></span></div>
+                <div class="code-line"><span class="line-number">2</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">onlyOwner</span>() {</span></div>
+                <div class="code-line"><span class="line-number">3</span><span class="line-content">    <span class="function">require</span>(msg.sender == owner, <span class="string">"Only owner"</span>);</span></div>
+                <div class="code-line"><span class="line-number">4</span><span class="line-content">    <span class="keyword">_</span>;</span></div>
+                <div class="code-line"><span class="line-number">5</span><span class="line-content">}</span></div>
+                <div class="code-line"><span class="line-number">6</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-number">7</span><span class="line-content"><span class="comment">// 使用方式</span></span></div>
+                <div class="code-line"><span class="line-number">8</span><span class="line-content"><span class="keyword">function</span> <span class="function">setValue</span>(uint256 _value) <span class="keyword">public</span> <span class="function">onlyOwner</span> {</span></div>
+                <div class="code-line"><span class="line-number">9</span><span class="line-content">    value = _value;</span></div>
+                <div class="code-line"><span class="line-number">10</span><span class="line-content">}</span></div>
+            </div>
+        </div>
+        <span class="slide-number">4 / 11</span>
+    </section>
+
+    <!-- Slide 5: 状态检查 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">类型二：状态检查 Modifier</h2>
+            <div class="two-column reveal">
+                <div class="column">
+                    <h3 style="color: var(--accent-success);">合约未暂停时</h3>
+                    <div class="code-block" style="padding: 1rem;">
+                        <div class="code-line"><span class="line-number">1</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">whenNotPaused</span>() {</span></div>
+                        <div class="code-line"><span class="line-number">2</span><span class="line-content">    <span class="function">require</span>(!paused, <span class="string">"Paused"</span>);</span></div>
+                        <div class="code-line"><span class="line-number">3</span><span class="line-content">    <span class="keyword">_</span>;</span></div>
+                        <div class="code-line"><span class="line-number">4</span><span class="line-content">}</span></div>
+                    </div>
+                </div>
+                <div class="column">
+                    <h3 style="color: var(--accent-warm);">合约暂停时</h3>
+                    <div class="code-block" style="padding: 1rem;">
+                        <div class="code-line"><span class="line-number">1</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">whenPaused</span>() {</span></div>
+                        <div class="code-line"><span class="line-number">2</span><span class="line-content">    <span class="function">require</span>(paused, <span class="string">"Not paused"</span>);</span></div>
+                        <div class="code-line"><span class="line-number">3</span><span class="line-content">    <span class="keyword">_</span>;</span></div>
+                        <div class="code-line"><span class="line-number">4</span><span class="line-content">}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">5 / 11</span>
+    </section>
+
+    <!-- Slide 6: 带参数 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">类型三：带参数的 Modifier</h2>
+            <div class="code-block reveal">
+                <div class="code-line"><span class="line-number">1</span><span class="line-content"><span class="comment">// 检查值是否在有效范围内</span></span></div>
+                <div class="code-line"><span class="line-number">2</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">validValue</span>(<span class="type">uint256</span> _value) {</span></div>
+                <div class="code-line"><span class="line-number">3</span><span class="line-content">    <span class="function">require</span>(_value >= minValue && _value <= maxValue, <span class="string">"Out of range"</span>);</span></div>
+                <div class="code-line"><span class="line-number">4</span><span class="line-content">    <span class="keyword">_</span>;</span></div>
+                <div class="code-line"><span class="line-number">5</span><span class="line-content">}</span></div>
+                <div class="code-line"><span class="line-number">6</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-number">7</span><span class="line-content"><span class="comment">// 检查地址不为零地址</span></span></div>
+                <div class="code-line"><span class="line-number">8</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">nonZeroAddress</span>(<span class="type">address</span> _address) {</span></div>
+                <div class="code-line"><span class="line-number">9</span><span class="line-content">    <span class="function">require</span>(_address != <span class="type">address</span>(0), <span class="string">"Zero address"</span>);</span></div>
+                <div class="code-line"><span class="line-number">10</span><span class="line-content">    <span class="keyword">_</span>;</span></div>
+                <div class="code-line"><span class="line-number">11</span><span class="line-content">}</span></div>
+            </div>
+        </div>
+        <span class="slide-number">6 / 11</span>
+    </section>
+
+    <!-- Slide 7: 执行顺序 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">Modifier 执行顺序</h2>
+            <div class="code-block reveal">
+                <div class="code-line"><span class="line-number">1</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">modifierA</span>() {</span></div>
+                <div class="code-line"><span class="line-number">2</span><span class="line-content">    <span class="comment">// 前置逻辑 A</span></span></div>
+                <div class="code-line"><span class="line-number">3</span><span class="line-content">    <span class="keyword">_</span>;</span></div>
+                <div class="code-line"><span class="line-number">4</span><span class="line-content">    <span class="comment">// 后置逻辑 A</span></span></div>
+                <div class="code-line"><span class="line-number">5</span><span class="line-content">}</span></div>
+                <div class="code-line"><span class="line-number">6</span><span class="line-content"></span></div>
+                <div class="code-line"><span class="line-number">7</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">modifierB</span>() {</span></div>
+                <div class="code-line"><span name="content">8</span><span class="line-content">    <span class="comment">// 前置逻辑 B</span></span></div>
+                <div class="code-line"><span class="line-number">9</span><span class="line-content">    <span class="keyword">_</span>;</span></div>
+                <div class="code-line"><span class="line-number">10</span><span class="line-content">    <span class="comment">// 后置逻辑 B</span></span></div>
+                <div class="code-line"><span class="line-number">11</span><span class="line-content">}</span></div>
+            </div>
+            <div class="focus-box reveal" style="margin-top: 1rem;">
+                <p style="font-size: var(--body-size); color: var(--text-primary);">
+                    <strong class="highlight">执行顺序：</strong>modifierA 前置 → modifierB 前置 → 函数体 → modifierB 后置 → modifierA 后置
+                </p>
+            </div>
+        </div>
+        <span class="slide-number">7 / 11</span>
+    </section>
+
+    <!-- Slide 8: 继承 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">Modifier 继承</h2>
+            <div class="two-column reveal">
+                <div class="column">
+                    <h3 style="color: var(--accent);">继承父合约 Modifier</h3>
+                    <div class="code-block" style="padding: 1rem; font-size: 0.85rem;">
+                        <div class="code-line"><span class="line-number">1</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">onlyOwner</span>() <span class="keyword">virtual</span> {</span></div>
+                        <div class="code-line"><span class="line-number">2</span><span class="line-content">    <span class="function">require</span>(msg.sender == owner);</span></div>
+                        <div class="code-line"><span class="line-number">3</span><span class="line-content">    <span class="keyword">_</span>;</span></div>
+                        <div class="code-line"><span class="line-number">4</span><span class="line-content">}</span></div>
+                    </div>
+                    <p style="font-size: var(--small-size); margin-top: 0.5rem;">
+                        使用 <strong class="highlight">virtual</strong> 使其可被覆盖
+                    </p>
+                </div>
+                <div class="column">
+                    <h3 style="color: var(--accent-purple);">覆盖 Modifier</h3>
+                    <div class="code-block" style="padding: 1rem; font-size: 0.85rem;">
+                        <div class="code-line"><span class="line-number">1</span><span class="line-content"><span class="keyword">modifier</span> <span class="function">onlyOwner</span>() <span class="keyword">override</span> {</span></div>
+                        <div class="code-line"><span class="line-number">2</span><span class="line-content">    <span class="function">require</span>(msg.sender == owner ||</span></div>
+                        <div class="code-line"><span class="line-number">3</span><span class="line-content">                 msg.sender == admin);</span></div>
+                        <div class="code-line"><span class="line-number">4</span><span class="line-content">    <span class="keyword">_</span>;</span></div>
+                        <div class="code-line"><span class="line-number">5</span><span class="line-content">}</span></div>
+                    </div>
+                    <p style="font-size: var(--small-size); margin-top: 0.5rem;">
+                        使用 <strong class="highlight-purple">override</strong> 覆盖父合约
+                    </p>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">8 / 11</span>
+    </section>
+
+
+    <!-- Slide 10: 最佳实践 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">最佳实践</h2>
+            <div class="grid reveal">
+                <div class="card">
+                    <h3 style="color: var(--accent);">命名规范</h3>
+                    <p>使用有意义的名称，如 <strong>onlyOwner</strong>、<strong>whenNotPaused</strong></p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent-warm);">添加注释</h3>
+                    <p>使用 NatSpec 注释（<strong>@notice</strong>、<strong>@dev</strong>）描述用途</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent-success);">错误消息</h3>
+                    <p>错误消息要<strong>清晰</strong>，便于调试和用户理解</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent-purple);">virtual 关键字</h3>
+                    <p>如果需要被继承覆盖，使用 <strong>virtual</strong> 声明</p>
+                </div>
+            </div>
+        </div>
+        <span class="slide-number">9 / 11</span>
+    </section>
+
+    <!-- Slide 11: 常见错误 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">常见错误 & 注意事项</h2>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>场景</th>
+                            <th>说明</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td style="color: var(--accent-warm);">忘记使用 <strong>_;</strong></td>
+                            <td>Modifier 必须包含 <strong>_;</strong> 否则函数体不会执行</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent-warm);">Modifier 顺序错误</td>
+                            <td>多个 Modifier 时顺序很重要，从左到右依次执行</td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent-warm);">覆盖忘加 override</td>
+                            <td>Solidity 0.8+ 需要显式声明 <strong>override</strong></td>
+                        </tr>
+                        <tr>
+                            <td style="color: var(--accent-warm);">在 Modifier 中修改状态</td>
+                            <td>谨慎处理，避免重入攻击等安全问题</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <span class="slide-number">10 / 11</span>
+    </section>
+
+    <!-- Slide 12: 总结 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">总结</h2>
+            <div class="focus-box reveal">
+                <h3 style="color: var(--accent);">Modifier 的核心价值</h3>
+                <ul class="feature-list" style="margin-top: 1rem;">
+                    <li><strong>提高代码可读性</strong> — 将验证逻辑从函数主体中分离</li>
+                    <li><strong>增强安全性</strong> — 确保关键函数只被授权方调用</li>
+                    <li><strong>促进代码复用</strong> — 避免重复编写相同的检查逻辑</li>
+                    <li><strong>支持继承扩展</strong> — 通过 virtual 和 override 实现灵活扩展</li>
+                </ul>
+            </div>
+            <p class="reveal" style="margin-top: 2rem; font-size: var(--h3-size); color: var(--accent);">
+                掌握 Modifier 是编写安全可靠的 Solidity 智能合约的基础
+            </p>
+        </div>
+        <span class="slide-number">11 / 11</span>
+    </section>
+
+    <script>
+        /* ===========================================
+           幻灯片控制器
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.totalSlides = this.slides.length;
+
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.bindEvents();
+                this.updateProgressBar();
+                this.checkVisibility();
+            }
+
+            // 创建导航点
+            createNavDots() {
+                const navDots = document.getElementById('navDots');
+                navDots.innerHTML = '';
+
+                for (let i = 0; i < this.totalSlides; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    navDots.appendChild(dot);
+                }
+            }
+
+            // 绑定事件
+            bindEvents() {
+                // 键盘导航
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+
+                // 滚轮导航
+                let scrollTimeout;
+                document.addEventListener('wheel', (e) => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        if (e.deltaY > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }, 50);
+                }, { passive: true });
+
+                // 触摸滑动
+                let touchStartY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchStartY - touchEndY;
+
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }
+                }, { passive: true });
+
+                // 滚动监听
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const slideIndex = Array.from(this.slides).indexOf(entry.target);
+                            this.currentSlide = slideIndex;
+                            this.updateNavDots();
+                            this.updateProgressBar();
+                            entry.target.classList.add('visible');
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            // 下一页
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            // 上一页
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            // 跳转到指定页
+            goToSlide(index) {
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+            }
+
+            // 更新导航点
+            updateNavDots() {
+                const dots = document.querySelectorAll('.nav-dot');
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.currentSlide);
+                });
+            }
+
+            // 更新进度条
+            updateProgressBar() {
+                const progress = ((this.currentSlide + 1) / this.totalSlides) * 100;
+                document.getElementById('progressBar').style.width = progress + '%';
+            }
+
+            // 检查初始可见性
+            checkVisibility() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+
+                // 触发第一页动画
+                setTimeout(() => {
+                    this.slides[0].classList.add('visible');
+                }, 100);
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>
