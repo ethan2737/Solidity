@@ -1,0 +1,29 @@
+{
+  "name": "solidity-day11-api-demo",
+  "version": "1.0.0",
+  "description": "Day 11 - Solidity API: 全局变量与错误处理（合并 Day13 + Day14）",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "node": "hardhat node",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "web3",
+    "global-variables",
+    "error-handling"
+  ],
+  "author": "xiucai",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "chai": "^4.3.10",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {}
+}
