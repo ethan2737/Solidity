@@ -1,0 +1,25 @@
+{
+  "name": "day13-advanced-solidity-demo",
+  "version": "1.0.0",
+  "description": "Advanced Solidity Demo - Integration of day17 and day18 examples",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "solidity",
+    "hardhat",
+    "demo"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {}
+}
