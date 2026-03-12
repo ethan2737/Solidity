@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day12：合约交互与 ABI 编码</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --text-primary: #ffffff;
+            --text-secondary: #8888aa;
+            --accent-cyan: #00f0ff;
+            --accent-magenta: #ff00aa;
+            --accent-green: #00ff88;
+            --accent-purple: #aa00ff;
+            --border-color: #2a2a3a;
+            --font-display: 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-display);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(0, 240, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255, 0, 170, 0.06) 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .grid-bg {
+            position: fixed;
+            inset: 0;
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .slide {
+            width: 100vw;
+            min-height: 100vh;
+            height: 100dvh;
+            padding: 2rem 3rem;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .slide-content {
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            text-align: center;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: clamp(1.4rem, 3vw, 2rem);
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        h2::before {
+            content: '';
+            width: 4px;
+            height: 1.4em;
+            background: linear-gradient(180deg, var(--accent-cyan), var(--accent-magenta));
+            border-radius: 2px;
+            flex-shrink: 0;
+        }
+
+        h3 {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            font-weight: 500;
+            color: var(--accent-cyan);
+        }
+
+        p {
+            font-size: clamp(0.85rem, 1.2vw, 1rem);
+            color: var(--text-secondary);
+            line-height: 1.7;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid var(--accent-cyan);
+            border-radius: 20px;
+            font-size: 0.75rem;
+            color: var(--accent-cyan);
+            margin-right: 0.5rem;
+        }
+
+        .tag.magenta {
+            background: rgba(255, 0, 170, 0.1);
+            border-color: var(--accent-magenta);
+            color: var(--accent-magenta);
+        }
+
+        .tag.green {
+            background: rgba(0, 255, 136, 0.1);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .card.highlight {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1);
+        }
+
+        .card.magenta {
+            border-color: var(--accent-magenta);
+            box-shadow: 0 0 30px rgba(255, 0, 170, 0.1);
+        }
+
+        .code-block {
+            font-family: var(--font-mono);
+            font-size: clamp(0.7rem, 1vw, 0.9rem);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.2rem;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.6;
+            color: var(--accent-green);
+            margin: 0.8rem 0;
+        }
+
+        .code-inline {
+            display: inline;
+            padding: 0.15rem 0.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            color: var(--accent-green);
+            font-family: var(--font-mono);
+            font-size: 0.9em;
+        }
+
+        ul {
+            padding-left: 1.3rem;
+            margin: 0.5rem 0;
+        }
+
+        li {
+            font-size: clamp(0.85rem, 1.2vw, 1rem);
+            color: var(--text-secondary);
+            margin-bottom: 0.4rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+            font-size: clamp(0.8rem, 1vw, 0.95rem);
+        }
+
+        th, td {
+            padding: 0.7rem 1rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-card);
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        td { color: var(--text-secondary); }
+
+        tr:hover td { background: rgba(0, 240, 255, 0.05); }
+
+        .compare-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .compare-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+        }
+
+        .compare-box.call { border-left: 4px solid var(--accent-cyan); }
+        .compare-box.delegate { border-left: 4px solid var(--accent-magenta); }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .slide.visible .reveal { opacity: 1; transform: translateY(0); }
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border-color);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-dot:hover, .nav-dot.active {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+            width: 0%;
+            transition: width 0.3s;
+            z-index: 100;
+        }
+
+        .page-number {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            z-index: 100;
+        }
+
+        .text-center { text-align: center; }
+        .text-accent { color: var(--accent-yellow); font-weight: 600; }
+        .mt-1 { margin-top: 1rem; }
+        .mt-2 { margin-top: 2rem; }
+        .mb-1 { margin-bottom: 1rem; }
+
+        @media (max-width: 768px) {
+            .slide { padding: 1.5rem; }
+            .compare-grid { grid-template-columns: 1fr; }
+            .nav-dots { right: 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="grid-bg"></div>
+    <div class="progress-bar" id="progressBar"></div>
+    <div class="nav-dots" id="navDots"></div>
+    <div class="page-number" id="pageNumber">1 / 12</div>
+
+    <!-- Slide 1: 封面 -->
+    <section class="slide" id="slide1">
+        <div class="slide-content">
+            <h1 class="reveal">Day12：合约交互与 ABI 编码</h1>
+            <p class="reveal text-center" style="margin-top: 0.5rem;">Solidity 高级编程</p>
+            <div class="reveal text-center mt-2">
+                <span class="tag">ABI</span>
+                <span class="tag magenta">Interface</span>
+                <span class="tag green">Call</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 2: 什么是ABI -->
+    <section class="slide" id="slide2">
+        <div class="slide-content">
+            <h2 class="reveal">什么是 ABI？</h2>
+            <div class="card reveal">
+                <p><strong>ABI（Application Binary Interface）</strong> = 合约的"使用说明书"</p>
+                <ul style="margin-top: 0.8rem;">
+                    <li>有哪些函数可以调用</li>
+                    <li>函数的参数是什么类型</li>
+                    <li>返回值是什么类型</li>
+                    <li>事件怎么触发</li>
+                </ul>
+            </div>
+            <p class="reveal mt-1">
+                <span class="code-inline">API</span> 程序员用的接口 &nbsp;
+                <span class="tag magenta">VS</span> &nbsp;
+                <span class="code-inline">ABI</span> 机器用的接口
+            </p>
+        </div>
+    </section>
+
+    <!-- Slide 3: 为什么要编码 -->
+    <section class="slide" id="slide3">
+        <div class="slide-content">
+            <h2 class="reveal">为什么要"编码"？</h2>
+            <div class="card highlight reveal">
+                <h3>EVM 只认识二进制！</h3>
+            </div>
+            <div class="reveal mt-1">
+                <p>人类写的代码：</p>
+                <div class="code-block">setValue(100)</div>
+            </div>
+            <div class="reveal">
+                <p>EVM 需要的数据：</p>
+                <div class="code-block">0x60fe47b10000000000000000000000000000000000000000000000000000000064</div>
+            </div>
+            <p class="reveal text-accent mt-1"><span class="code-inline">abi.encode</span> 就是把这个转换自动化了</p>
+        </div>
+    </section>
+
+    <!-- Slide 4: 两个ABI的区别 -->
+    <section class="slide" id="slide4">
+        <div class="slide-content">
+            <h2 class="reveal">两个 ABI 的区别 <span class="tag magenta">重点！</span></h2>
+            <div class="compare-grid reveal">
+                <div class="compare-box">
+                    <h3 style="color: var(--accent-cyan);">interface IABI</h3>
+                    <p class="mt-1">描述合约有哪些方法</p>
+                    <div class="code-block">interface IToken {
+    function transfer(address to) external;
+}</div>
+                </div>
+                <div class="compare-box">
+                    <h3 style="color: var(--accent-magenta);">abi.encode()</h3>
+                    <p class="mt-1">编解码二进制数据</p>
+                    <div class="code-block">bytes memory data = abi.encode(123);
+(uint256 v) = abi.decode(data, (uint256));</div>
+                </div>
+            </div>
+            <p class="reveal text-center text-accent mt-1">它们只是名字碰巧一样，实际上<strong>完全没关系</strong>！</p>
+        </div>
+    </section>
+
+    <!-- Slide 5: 接口定义 -->
+    <section class="slide" id="slide5">
+        <div class="slide-content">
+            <h2 class="reveal">接口定义 interface</h2>
+            <div class="card reveal">
+                <p><strong>接口</strong> = 合约的"名片"，声明对方有什么方法</p>
+                <ul style="margin-top: 0.8rem;">
+                    <li>只写<strong>函数签名</strong>，不写实现</li>
+                    <li>所有函数默认 <span class="code-inline">external</span></li>
+                    <li>不能定义构造函数、状态变量</li>
+                </ul>
+            </div>
+            <div class="reveal">
+                <div class="code-block">// 定义接口
+interface IToken {
+    function transfer(address to, uint256 amount) external;
+    function balanceOf(address account) external view returns (uint256);
+}</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 6: 函数选择器 -->
+    <section class="slide" id="slide6">
+        <div class="slide-content">
+            <h2 class="reveal">函数选择器</h2>
+            <div class="card highlight reveal">
+                <h3>函数选择器 = 方法名的"指纹"</h3>
+                <p class="mt-1">是函数签名的 Keccak-256 哈希的前 4 字节</p>
+            </div>
+            <div class="reveal">
+                <div class="code-block">方法签名：setValue(uint256)
+        ↓ Keccak256 哈希
+完整哈希：0x60fe47b100000000...000064
+        ↓ 取前4字节
+选择器：  0x60fe47b1  ← EVM识别方法</div>
+            </div>
+            <p class="reveal mt-1"><strong>选择器 = 方法的"简短编号"</strong>，EVM通过它知道你要调用哪个方法</p>
+        </div>
+    </section>
+
+    <!-- Slide 7: abi编码方法 -->
+    <section class="slide" id="slide7">
+        <div class="slide-content">
+            <h2 class="reveal">abi 编码方法对比</h2>
+            <table class="reveal">
+                <thead>
+                    <tr><th>方法</th><th>作用</th><th>包含选择器</th><th>补齐32字节</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td><span class="code-inline">abi.encode</span></td><td>标准参数编码</td><td>否</td><td>是</td></tr>
+                    <tr><td><span class="code-inline">abi.decode</span></td><td>解码还原数据</td><td>否</td><td>-</td></tr>
+                    <tr><td><span class="code-inline">abi.encodePacked</span></td><td>紧密打包</td><td>否</td><td>否</td></tr>
+                    <tr><td><span class="code-inline">encodeWithSignature</span></td><td>可执行的函数调用</td><td style="color: var(--accent-green);">是</td><td>是</td></tr>
+                    <tr><td><span class="code-inline">encodeWithSelector</span></td><td>手动选择器调用</td><td style="color: var(--accent-green);">是</td><td>是</td></tr>
+                </tbody>
+            </table>
+            <div class="card magenta reveal mt-1">
+                <h3>encodeWithSignature = "带门牌号的快递"</h3>
+                <p>选择器 = 地址，参数 = 货物</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 8: encodeWithSignature -->
+    <section class="slide" id="slide8">
+        <div class="slide-content">
+            <h2 class="reveal">encodeWithSignature <span class="tag">重点</span></h2>
+            <p class="reveal">自动拼接：选择器 + 参数 = 可执行的函数调用</p>
+            <div class="reveal">
+                <div class="code-block">// 自动生成选择器 + 编码参数
+bytes memory data = abi.encodeWithSignature("setValue(uint256)", 100);
+
+// 结果：0x60fe47b1 00000000000000000000000000000000000000000000000000000000000064
+//         ↑选择器    ↑参数</div>
+            </div>
+            <div class="card reveal mt-1">
+                <h3>实际使用场景：用 call 调用合约</h3>
+                <div class="code-block">target.call(abi.encodeWithSignature("setValue(uint256)", 100));</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 9: call vs delegatecall -->
+    <section class="slide" id="slide9">
+        <div class="slide-content">
+            <h2 class="reveal">call vs delegatecall <span class="tag magenta">核心！</span></h2>
+            <div class="compare-grid reveal">
+                <div class="compare-box call">
+                    <h3 style="color: var(--accent-cyan);">call</h3>
+                    <p class="mt-1"><strong>去别人地盘办事</strong></p>
+                    <ul class="mt-1">
+                        <li>执行地点：目标合约</li>
+                        <li>修改：目标合约的数据</li>
+                        <li>msg.sender = 调用合约</li>
+                    </ul>
+                </div>
+                <div class="compare-box delegate">
+                    <h3 style="color: var(--accent-magenta);">delegatecall</h3>
+                    <p class="mt-1"><strong>请别人来自己地盘</strong></p>
+                    <ul class="mt-1">
+                        <li>执行地点：调用合约</li>
+                        <li>修改：调用合约的数据</li>
+                        <li>msg.sender = 原始调用者</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 10: 调用语法 -->
+    <section class="slide" id="slide10">
+        <div class="slide-content">
+            <h2 class="reveal">调用语法</h2>
+            <p class="reveal">两种调用都是<strong>通过目标合约地址</strong>来触发</p>
+            <div class="reveal">
+                <div class="code-block">address public target;  // 目标合约地址
+
+// 语法
+target.call(data)
+target.delegatecall(data)
+
+// 示例
+targetContract.call(abi.encodeWithSignature("setValue(uint256)", 100));
+targetContract.delegatecall(abi.encodeWithSignature("setValue(uint256)", 100));</div>
+            </div>
+            <div class="card highlight reveal mt-1">
+                <p style="text-align: center; color: var(--accent-cyan);">
+                    <strong>call：改别人的数据</strong> &nbsp;|&nbsp; <strong>delegatecall：改自己的数据</strong>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 11: 生活类比 -->
+    <section class="slide" id="slide11">
+        <div class="slide-content">
+            <h2 class="reveal">生活类比</h2>
+            <div class="compare-grid reveal">
+                <div class="compare-box call">
+                    <h3 style="color: var(--accent-cyan);">call</h3>
+                    <p class="mt-1" style="font-size: 1.1rem;">委托外卖平台送餐</p>
+                    <ul class="mt-1">
+                        <li>告诉平台 → 商家做</li>
+                        <li>送到你家里</li>
+                        <li>改商家的库存</li>
+                    </ul>
+                </div>
+                <div class="compare-box delegate">
+                    <h3 style="color: var(--accent-magenta);">delegatecall</h3>
+                    <p class="mt-1" style="font-size: 1.1rem;">请隔壁老王做饭</p>
+                    <ul class="mt-1">
+                        <li>告诉老王 → 用老王菜谱</li>
+                        <li>在你家厨房做</li>
+                        <li>端上你家的桌</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 12: 总结 -->
+    <section class="slide" id="slide12">
+        <div class="slide-content">
+            <h2 class="reveal">总结</h2>
+            <table class="reveal">
+                <thead>
+                    <tr><th>知识点</th><th>核心概念</th><th>适用场景</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>ABI</td><td>合约的"使用说明书"</td><td>前端/后端调用合约</td></tr>
+                    <tr><td>interface</td><td>描述对方有什么方法</td><td>合约间调用</td></tr>
+                    <tr><td>abi.encode</td><td>标准 ABI 编码</td><td>参数编码、跨合约传递</td></tr>
+                    <tr><td>call</td><td>在目标合约上下文</td><td>跨合约调用</td></tr>
+                    <tr><td>delegatecall</td><td>在调用合约上下文</td><td>代理合约、升级模式</td></tr>
+                </tbody>
+            </table>
+            <p class="reveal text-center mt-2" style="color: var(--accent-cyan); font-size: 1.1rem;">
+                <strong>关键：通过"目标地址"来触发调用</strong>
+            </p>
+        </div>
+    </section>
+
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.navDots = document.getElementById('navDots');
+                this.progressBar = document.getElementById('progressBar');
+                this.pageNumber = document.getElementById('pageNumber');
+                this.totalSlides = this.slides.length;
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.bindEvents();
+                this.observeSlides();
+            }
+
+            createNavDots() {
+                for (let i = 0; i < this.totalSlides; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot';
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    this.navDots.appendChild(dot);
+                }
+            }
+
+            bindEvents() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+
+                let scrollTimeout;
+                document.addEventListener('wheel', (e) => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => {
+                        if (e.deltaY > 0) this.nextSlide();
+                        else this.prevSlide();
+                    }, 50);
+                }, { passive: true });
+            }
+
+            observeSlides() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const index = Array.from(this.slides).indexOf(entry.target);
+                            this.updateSlide(index);
+                            entry.target.classList.add('visible');
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            updateSlide(index) {
+                const dots = this.navDots.querySelectorAll('.nav-dot');
+                dots.forEach((dot, i) => dot.classList.toggle('active', i === index));
+                this.progressBar.style.width = `${((index + 1) / this.totalSlides) * 100}%`;
+                this.pageNumber.textContent = `${index + 1} / ${this.totalSlides}`;
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.currentSlide++;
+                    this.updateSlide(this.currentSlide);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.currentSlide--;
+                    this.updateSlide(this.currentSlide);
+                }
+            }
+
+            goToSlide(index) {
+                this.currentSlide = index;
+                this.updateSlide(index);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => new SlidePresentation());
+    </script>
+</body>
+</html>
