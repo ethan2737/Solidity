@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solidity 进阶：自定义类型与函数</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===========================================
+           CSS 自定义属性（主题）
+           =========================================== */
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent: #58a6ff;
+            --accent-green: #3fb950;
+            --accent-orange: #d29922;
+            --accent-purple: #a371f7;
+            --accent-pink: #f778ba;
+            --code-bg: #0d1117;
+            --border: #30363d;
+            --glow: rgba(88, 166, 255, 0.15);
+
+            --font-display: 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --title-size: clamp(1.8rem, 5vw, 3.5rem);
+            --h2-size: clamp(1.4rem, 3.5vw, 2.5rem);
+            --h3-size: clamp(1.1rem, 2.5vw, 1.6rem);
+            --body-size: clamp(0.8rem, 1.4vw, 1.1rem);
+            --code-size: clamp(0.7rem, 1.1vw, 0.95rem);
+
+            --slide-padding: clamp(1.5rem, 4vw, 4rem);
+            --content-gap: clamp(0.8rem, 2vw, 1.5rem);
+            --element-gap: clamp(0.4rem, 1vw, 0.8rem);
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.7s;
+        }
+
+        /* ===========================================
+           基础样式
+           =========================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-display);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        /* ===========================================
+           幻灯片容器
+           =========================================== */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            max-height: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            overflow: hidden;
+            padding: 1rem 0;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* ===========================================
+           背景效果
+           =========================================== */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(88, 166, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(163, 113, 247, 0.06) 0%, transparent 50%),
+                linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .slide > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        /* 封面页特殊背景 */
+        .cover-slide::before {
+            background:
+                radial-gradient(ellipse at 30% 30%, rgba(88, 166, 255, 0.12) 0%, transparent 60%),
+                radial-gradient(ellipse at 70% 70%, rgba(163, 113, 247, 0.1) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 50%, rgba(63, 185, 80, 0.05) 0%, transparent 70%),
+                var(--bg-primary);
+        }
+
+        /* 网格背景 */
+        .grid-bg {
+            background-image:
+                linear-gradient(rgba(88, 166, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(88, 166, 255, 0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+
+        /* ===========================================
+           动画
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(25px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        /* 强调动画 */
+        .reveal-scale {
+            opacity: 0;
+            transform: scale(0.92);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal-scale {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* ===========================================
+           标题样式
+           =========================================== */
+        h1 {
+            font-size: var(--title-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: var(--content-gap);
+            letter-spacing: -0.02em;
+            text-align: center;
+        }
+
+        h1 .highlight {
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        h2 {
+            font-size: var(--h2-size);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--content-gap);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            text-align: center;
+        }
+
+        h2 .chapter-num {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 2.2em;
+            height: 2.2em;
+            background: linear-gradient(135deg, var(--accent) 0%, var(--accent-purple) 100%);
+            border-radius: 0.5rem;
+            font-size: 0.7em;
+            font-weight: 700;
+            color: var(--bg-primary);
+        }
+
+        h3 {
+            font-size: var(--h3-size);
+            font-weight: 500;
+            color: var(--accent);
+            margin-bottom: var(--element-gap);
+        }
+
+        p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: var(--element-gap);
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 2vw, 1.4rem);
+            color: var(--text-secondary);
+            font-weight: 300;
+            text-align: center;
+        }
+
+        .tagline {
+            font-size: var(--body-size);
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        /* ===========================================
+           列表样式
+           =========================================== */
+        ul, ol {
+            margin-left: 1.5rem;
+            margin-bottom: var(--content-gap);
+            text-align: left;
+            display: inline-block;
+            max-width: 100%;
+        }
+
+        li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: var(--element-gap);
+            line-height: 1.7;
+        }
+
+        li strong {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        li .accent {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        li .green {
+            color: var(--accent-green);
+        }
+
+        li .orange {
+            color: var(--accent-orange);
+        }
+
+        li .purple {
+            color: var(--accent-purple);
+        }
+
+        /* ===========================================
+           代码块样式
+           =========================================== */
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            overflow: hidden;
+            margin: var(--element-gap) 0;
+            max-height: 45vh;
+            overflow-y: auto;
+            width: 100%;
+            text-align: left;
+        }
+
+        .code-block::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .code-block::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .code-block::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        .code-block::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+
+        .code-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.5rem 1rem;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            font-size: var(--body-size);
+            color: var(--text-muted);
+        }
+
+        .code-dots {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .code-dots span {
+            width: 0.6rem;
+            height: 0.6rem;
+            border-radius: 50%;
+        }
+
+        .code-dots span:nth-child(1) { background: #ff5f57; }
+        .code-dots span:nth-child(2) { background: #febc2e; }
+        .code-dots span:nth-child(3) { background: #28c840; }
+
+        pre {
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            line-height: 1.7;
+            color: var(--text-primary);
+        }
+
+        code {
+            font-family: var(--font-mono);
+        }
+
+        .keyword { color: var(--accent-pink); }
+        .type { color: var(--accent-purple); }
+        .function { color: var(--accent); }
+        .string { color: var(--accent-green); }
+        .number { color: var(--accent-orange); }
+        .comment { color: var(--text-muted); font-style: italic; }
+        .operator { color: var(--text-secondary); }
+
+        /* ===========================================
+           卡片样式
+           =========================================== */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: var(--content-gap);
+            margin: var(--element-gap) 0;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(45%, 280px), 1fr));
+            gap: var(--content-gap);
+            margin: var(--content-gap) 0;
+            width: 100%;
+            justify-items: center;
+        }
+
+        .card h4 {
+            font-size: var(--body-size);
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .card p {
+            font-size: calc(var(--body-size) * 0.9);
+            color: var(--text-secondary);
+            margin-bottom: 0;
+        }
+
+        /* 表格样式 */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: var(--content-gap) 0;
+            max-height: 45vh;
+            overflow-y: auto;
+            width: 100%;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--body-size);
+            text-align: center;
+            margin: 0 auto;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        td {
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        tr:hover td {
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        /* ===========================================
+           重点高亮
+           =========================================== */
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(88, 166, 255, 0.1) 0%, rgba(163, 113, 247, 0.1) 100%);
+            border-left: 3px solid var(--accent);
+            padding: 1rem 1.25rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+            margin: var(--content-gap) 0;
+            text-align: left;
+            max-width: 100%;
+        }
+
+        .highlight-box.orange {
+            background: linear-gradient(135deg, rgba(210, 153, 34, 0.1) 0%, rgba(210, 153, 34, 0.05) 100%);
+            border-left-color: var(--accent-orange);
+        }
+
+        .highlight-box.green {
+            background: linear-gradient(135deg, rgba(63, 185, 80, 0.1) 0%, rgba(63, 185, 80, 0.05) 100%);
+            border-left-color: var(--accent-green);
+        }
+
+        .highlight-box p {
+            color: var(--text-primary);
+            margin-bottom: 0;
+        }
+
+        .big-highlight {
+            font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+            font-weight: 600;
+            color: var(--accent);
+            text-align: center;
+            padding: 1rem;
+            width: 100%;
+        }
+
+        /* ===========================================
+           导航
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent) 0%, var(--accent-purple) 100%);
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: 1.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--border);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot:hover {
+            background: var(--text-muted);
+            transform: scale(1.2);
+        }
+
+        .nav-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .slide-number {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            font-size: var(--body-size);
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        /* ===========================================
+           响应式
+           =========================================== */
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(1rem, 3vw, 2rem);
+                --content-gap: clamp(0.5rem, 1.5vw, 1rem);
+            }
+            .nav-dots { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --title-size: clamp(1.5rem, 7vw, 2.5rem);
+                --h2-size: clamp(1.2rem, 4vw, 1.8rem);
+            }
+            .slide { padding: var(--slide-padding); }
+            ul, ol { margin-left: 1rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal, .reveal-scale {
+                transition: opacity 0.3s ease;
+                transform: none;
+            }
+            html { scroll-behavior: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+    <div class="slide-number" id="slideNumber">1 / 24</div>
+
+    <!-- 幻灯片 1: 封面 -->
+    <section class="slide cover-slide">
+        <div class="slide-content">
+            <h1 class="reveal"><span class="highlight">Solidity 进阶</span></h1>
+            <h1 class="reveal">自定义类型与函数</h1>
+            <p class="subtitle reveal">结构体、映射、函数可见性、错误处理</p>
+            <p class="tagline reveal" style="margin-top: 2rem;">EVM 基础 | 数据存储 | 最佳实践</p>
+        </div>
+    </section>
+
+    <!-- 幻灯片 2: 什么是EVM -->
+    <section class="slide grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1</span> 什么是 EVM</h2>
+            <div class="highlight-box reveal">
+                <p><strong>EVM（Ethereum Virtual Machine，以太坊虚拟机）</strong>是运行智能合约的虚拟计算机</p>
+            </div>
+            <ul class="bullet-list">
+                <li class="reveal"><span class="accent">隔离的执行环境</span> — 智能合约在"沙箱"中运行</li>
+                <li class="reveal"><span class="green">Gas 机制</span> — 每次函数调用消耗 Gas（燃料）</li>
+                <li class="reveal"><span class="orange">费用由调用者支付</span> — 激励开发者编写高效代码</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 幻灯片 3: 什么是Gas -->
+    <section class="slide grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">2</span> 什么是 Gas</h2>
+            <div class="highlight-box orange reveal">
+                <p><strong>Gas</strong> 是执行智能合约操作所需的计算资源单位 — 就像汽车的燃油</p>
+            </div>
+            <ul class="bullet-list">
+                <li class="reveal">每个操作（如存储数据、计算哈希）都有固定的 <span class="accent">Gas 成本</span></li>
+                <li class="reveal">Gas 价格由市场决定，但每个操作有 <span class="orange">最低消耗</span></li>
+                <li class="reveal"><span class="green">Gas 退还机制</span>：revert 会退还剩余 Gas，assert 失败不退</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 幻灯片 4: 第一章概述 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">第一章：自定义数据类型</h2>
+            <p class="reveal" style="font-size: var(--h3-size); margin: 1.5rem 0;">在 Solidity 中，我们不仅可以使用基本类型，还可以创建自定义类型</p>
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h4>📦 结构体 (Struct)</h4>
+                    <p>将多个相关数据组合成一个逻辑单元</p>
+                </div>
+                <div class="card reveal">
+                    <h4>🔑 映射 (Mapping)</h4>
+                    <p>键值对数据结构，提供 O(1) 的快速查找</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 5: 结构体定义 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1.1</span> 结构体 (Struct) — 定义</h2>
+            <p class="reveal">将多个不同类型的变量"打包"在一起</p>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="keyword">struct</span> <span class="type">User</span> {
+    <span class="type">address</span> <span class="function">addr</span>;      <span class="comment">// 用户地址</span>
+    <span class="type">uint256</span> <span class="function">balance</span>;  <span class="comment">// 用户余额</span>
+    <span class="type">bool</span> <span class="function">isActive</span>;    <span class="comment">// 是否激活</span>
+}</code></pre>
+            </div>
+            <div class="highlight-box green reveal">
+                <p>类比：结构体就像其他语言的 struct 或 class，用于组织复杂数据</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 6: 结构体初始化 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1.1</span> 结构体 — 初始化方式</h2>
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h4>✅ 命名参数（推荐）</h4>
+                    <p>明确指定每个字段的值，字段顺序无关，代码可读性好</p>
+                </div>
+                <div class="card reveal">
+                    <h4>⚠️ 位置参数</h4>
+                    <p>按照结构体定义字段的顺序依次传入值，容易因顺序错误导致赋值错误</p>
+                </div>
+            </div>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="comment">// 方式一：命名参数（推荐）</span>
+<span class="type">User</span> <span class="function">memory</span> user1 = <span class="type">User</span>({
+    <span class="function">addr</span>: msg.<span class="function">sender</span>,
+    <span class="function">balance</span>: <span class="number">100</span>,
+    <span class="function">isActive</span>: <span class="keyword">true</span>
+});
+
+<span class="comment">// 方式二：位置参数（不推荐）</span>
+<span class="type">User</span> <span class="function">memory</span> user2 = <span class="type">User</span>(msg.<span class="function">sender</span>, <span class="number">100</span>, <span class="keyword">true</span>);</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 7: 结构体比较 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1.1</span> 结构体 — 比较与复制</h2>
+            <p class="reveal" style="margin-bottom: 1rem;">结构体不能直接用 == 比较，需要用 keccak256 哈希后比较</p>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="keyword">struct</span> <span class="type">Person</span> {
+    <span class="type">string</span> <span class="function">name</span>;
+    <span class="type">uint256</span> <span class="function">age</span>;
+}
+
+<span class="keyword">function</span> <span class="function">compare</span>(<span class="type">Person</span> <span class="function">calldata</span> p1, <span class="type">Person</span> <span class="function">calldata</span> p2)
+    <span class="keyword">public</span> <span class="function">pure</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+    <span class="keyword">return</span> <span class="function">keccak256</span>(<span class="function">bytes</span>(p1.name)) == <span class="function">keccak256</span>(<span class="function">bytes</span>(p2.name))
+        && p1.age == p2.age;
+}
+
+<span class="comment">// 结构体赋值默认是值拷贝（深拷贝）</span>
+<span class="keyword">function</span> <span class="function">copy</span>(<span class="type">Person</span> <span class="function">calldata</span> p)
+    <span class="keyword">public</span> <span class="function">pure</span> <span class="keyword">returns</span> (<span class="type">Person</span> <span class="function">memory</span>) {
+    <span class="keyword">return</span> <span class="type">Person</span>(p.name, p.age);
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 8: 映射概念 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1.2</span> 映射 (Mapping) — 概念</h2>
+            <div class="highlight-box orange reveal">
+                <p style="font-size: var(--h3-size);"><strong>映射</strong> — 键值对数据结构，查找效率极高</p>
+            </div>
+            <ul class="bullet-list">
+                <li class="reveal"><span class="accent">O(1) 时间复杂度</span> — 无论数据量多大，查找速度一样快</li>
+                <li class="reveal">类比：映射就像字典书后的索引页，直接翻到目标页</li>
+                <li class="reveal"><span class="orange">O(n)</span>：数组遍历就像从头逐页翻书</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 幻灯片 9: 映射定义 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1.2</span> 映射 — 定义语法</h2>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="comment">// 映射定义语法：mapping(键类型 => 值类型) 可见性 名称;</span>
+
+<span class="comment">// 键类型（KeyType）：只能是值类型</span>
+<span class="comment">// 值类型（ValueType）：可以是任何类型</span>
+
+<span class="type">mapping</span>(<span class="type">address</span> => <span class="type">uint256</span>) <span class="keyword">public</span> <span class="function">balances</span>;    <span class="comment">// 地址 → 余额</span>
+<span class="type">mapping</span>(<span class="type">uint256</span> => <span class="type">string</span>) <span class="keyword">public</span> <span class="function">names</span>;        <span class="comment">// ID → 名称</span>
+<span class="type">mapping</span>(<span class="type">address</span> => <span class="type">bool</span>) <span class="keyword">public</span> <span class="function">isRegistered</span>;   <span class="comment">// 地址 → 是否注册</span></code></pre>
+            </div>
+            <div class="highlight-box reveal">
+                <p>⚠️ 键类型只能是值类型（address、uint256、bytes32、bool、enum），不能是 mapping、数组、struct</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 10: 映射访问行为 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1.2</span> 映射 — 访问行为</h2>
+            <p class="reveal">访问不存在的键时，返回该类型的默认值</p>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="type">mapping</span>(<span class="type">address</span> => <span class="type">uint256</span>) <span class="keyword">public</span> <span class="function">balances</span>;
+
+<span class="keyword">function</span> <span class="function">getBalance</span>(<span class="type">address</span> _addr)
+    <span class="keyword">public</span> <span class="function">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>) {
+    <span class="keyword">return</span> <span class="function">balances</span>[_addr];  <span class="comment">// 从未设置过返回 ？0</span>
+}</code></pre>
+            </div>
+            <div class="highlight-box orange reveal">
+                <p><strong>问题</strong>：无法区分"值是 0"和"键不存在"的情况</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 11: 存在性检查 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1.2</span> 映射 — 存在性检查</h2>
+            <p class="reveal">配合一个额外的 bool 映射来检查数据是否存在</p>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="type">mapping</span>(<span class="type">address</span> => <span class="type">uint256</span>) <span class="keyword">public</span> <span class="function">balances</span>;
+<span class="type">mapping</span>(<span class="type">address</span> => <span class="type">bool</span>) <span class="keyword">public</span> <span class="function">hasBalance</span>;
+
+<span class="keyword">function</span> <span class="function">setBalance</span>(<span class="type">address</span> _addr, <span class="type">uint256</span> _amount) <span class="keyword">public</span> {
+    <span class="function">balances</span>[_addr] = _amount;
+    <span class="function">hasBalance</span>[_addr] = <span class="keyword">true</span>;  <span class="comment">// 标记已设置</span>
+}
+
+<span class="keyword">function</span> <span class="function">getBalance</span>(<span class="type">address</span> _addr)
+    <span class="keyword">public</span> <span class="function">view</span> <span class="keyword">returns</span> (<span class="type">uint256</span>, <span class="type">bool</span>) {
+    <span class="keyword">return</span> (<span class="function">balances</span>[_addr], <span class="function">hasBalance</span>[_addr]);
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 12: 映射遍历 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1.2</span> 映射 — 遍历问题</h2>
+            <div class="highlight-box orange reveal">
+                <p>映射的底层是哈希表，<strong>只存储键值对，不存储键的列表</strong></p>
+            </div>
+            <ul class="bullet-list">
+                <li class="reveal">❌ 无法获取"所有键"</li>
+                <li class="reveal">❌ 无法知道映射的大小</li>
+                <li class="reveal">❌ 无法用 for 循环遍历</li>
+            </ul>
+            <div class="highlight-box green reveal">
+                <p><strong>解决方案</strong>：使用辅助数组同步存储键列表</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 13: 嵌套映射与组合 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal"><span class="chapter-num">1.3</span> 嵌套结构与组合</h2>
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h4>🔄 嵌套映射</h4>
+                    <p>mapping(address => mapping(uint256 => uint256))</p>
+                </div>
+                <div class="card reveal">
+                    <h4>📦 映射 + 结构体</h4>
+                    <p>以地址/ID为键，快速查找复杂的用户信息</p>
+                </div>
+            </div>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="keyword">struct</span> <span class="type">User</span> {
+    <span class="type">address</span> <span class="function">addr</span>;
+    <span class="type">uint256</span> <span class="function">balance</span>;
+}
+
+<span class="type">mapping</span>(<span class="type">address</span> => <span class="type">User</span>) <span class="keyword">public</span> <span class="function">users</span>;
+<span class="type">mapping</span>(<span class="type">address</span> => <span class="type">bool</span>) <span class="keyword">public</span> <span class="function">userExists</span>;</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 14: 数据存储位置 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">第二章：数据存储位置</h2>
+            <p class="reveal">智能合约的状态需要持久化存储，但区块链存储昂贵</p>
+            <div class="table-wrapper reveal">
+                <table>
+                    <tr>
+                        <th>位置</th>
+                        <th>说明</th>
+                        <th>生命周期</th>
+                        <th>Gas 成本</th>
+                    </tr>
+                    <tr>
+                        <td><span class="accent">Storage</span></td>
+                        <td>永久存储在区块链上</td>
+                        <td>合约存活期间</td>
+                        <td>高</td>
+                    </tr>
+                    <tr>
+                        <td><span class="green">Memory</span></td>
+                        <td>临时存储在内存中</td>
+                        <td>函数调用期间</td>
+                        <td>低</td>
+                    </tr>
+                    <tr>
+                        <td><span class="orange">Calldata</span></td>
+                        <td>不可修改的临时存储</td>
+                        <td>函数调用期间</td>
+                        <td>最低</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 15: 存储位置示例 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">数据存储位置 — 使用规则</h2>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="comment">// 状态变量（默认 storage）</span>
+<span class="type">Person</span> <span class="keyword">public</span> <span class="function">person</span>;
+
+<span class="comment">// 函数参数：Memory 或 Calldata</span>
+<span class="keyword">function</span> <span class="function">foo</span>(<span class="type">Person</span> <span class="function">memory</span> p) <span class="keyword">internal</span> <span class="function">pure</span> {
+    p.age = <span class="number">100</span>;  <span class="comment">// 修改的是副本</span>
+}
+
+<span class="keyword">function</span> <span class="function">bar</span>(<span class="type">Person</span> <span class="function">calldata</span> p) <span class="keyword">internal</span> <span class="function">pure</span> {
+    <span class="comment">// p.age = 100; // 编译错误：calldata 不可修改</span>
+    <span class="type">uint256</span> a = p.age;  <span class="comment">// 可以读取</span>
+}
+
+<span class="comment">// 返回值：必须是 Memory</span>
+<span class="keyword">function</span> <span class="function">getPerson</span>() <span class="keyword">public</span> <span class="function">view</span>
+    <span class="keyword">returns</span> (<span class="type">Person</span> <span class="function">memory</span>) {
+    <span class="keyword">return</span> person;
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 16: 函数基础 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">理解函数</h2>
+            <div class="highlight-box reveal">
+                <p><strong>函数（Function）</strong> 是执行特定任务的代码块，是用户与合约交互的唯一方式</p>
+            </div>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="comment">// 函数名    参数          返回值</span>
+<span class="keyword">function</span> <span class="function">setValue</span>(<span class="type">uint256</span> _value) <span class="keyword">public</span> <span class="keyword">returns</span> (<span class="type">bool</span>) {
+    value = _value;
+    <span class="keyword">return</span> <span class="keyword">true</span>;
+}</code></pre>
+            </div>
+            <ul class="bullet-list">
+                <li class="reveal">传统程序：函数像 API 接口</li>
+                <li class="reveal">智能合约：函数是用户与合约交互的唯一方式</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- 幻灯片 17: 函数可见性 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">第三章：函数可见性</h2>
+            <p class="reveal">控制"谁能调用这个函数"</p>
+            <div class="table-wrapper reveal">
+                <table>
+                    <tr>
+                        <th>可见性</th>
+                        <th>调用范围</th>
+                        <th>特点</th>
+                    </tr>
+                    <tr>
+                        <td><span class="accent">public</span></td>
+                        <td>内部 + 外部</td>
+                        <td>可被任何人调用</td>
+                    </tr>
+                    <tr>
+                        <td><span class="purple">external</span></td>
+                        <td>仅外部</td>
+                        <td>Gas 效率更高</td>
+                    </tr>
+                    <tr>
+                        <td><span class="green">internal</span></td>
+                        <td>仅内部</td>
+                        <td>当前合约及子类</td>
+                    </tr>
+                    <tr>
+                        <td><span class="orange">private</span></td>
+                        <td>仅当前合约</td>
+                        <td>不能被继承</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 18: 可见性示例 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">函数可见性 — 示例</h2>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="keyword">function</span> <span class="function">publicFunc</span>(<span class="type">uint256</span> _value) <span class="keyword">public</span> { }
+<span class="keyword">function</span> <span class="function">externalFunc</span>(<span class="type">uint256</span> _value) <span class="keyword">external</span> { }
+<span class="keyword">function</span> <span class="function">_internalFunc</span>(<span class="type">uint256</span> _value) <span class="keyword">internal</span> { }
+<span class="keyword">function</span> <span class="function">_privateFunc</span>(<span class="type">uint256</span> _value) <span class="keyword">private</span> { }
+
+<span class="comment">// 内部调用</span>
+<span class="keyword">function</span> <span class="function">callInternal</span>() <span class="keyword">public</span> {
+    <span class="function">_internalFunc</span>(<span class="number">100</span>);
+}
+
+<span class="comment">// 外部调用（通过 this）</span>
+<span class="keyword">function</span> <span class="function">callExternal</span>() <span class="keyword">public</span> {
+    <span class="keyword">this</span>.<span class="function">externalFunc</span>(<span class="number">200</span>);
+}</code></pre>
+            </div>
+            <div class="highlight-box green reveal">
+                <p>最佳实践：如果函数不需要内部调用，优先使用 <span class="accent">external</span></p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 19: 函数调用方式 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">函数调用方式</h<div class="card2>
+            -grid">
+                <div class="card reveal">
+                    <h4>⚡ 内部调用</h4>
+                    <p>直接在当前合约代码中执行，不产生新的调用帧</p>
+                    <p style="margin-top: 0.5rem; color: var(--accent-green);">Gas 消耗少 | 栈深度限制宽松</p>
+                </div>
+                <div class="card reveal">
+                    <h4>🌐 外部调用</h4>
+                    <p>产生新的 EVM 调用帧，像调用另一个合约</p>
+                    <p style="margin-top: 0.5rem; color: var(--accent-orange);">Gas 消耗多 | 栈深度限制严格</p>
+                </div>
+            </div>
+            <div class="highlight-box reveal">
+                <p>⚠️ 外部调用栈深度约 16 层，内部调用约 1024 层</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 20: 错误处理 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">错误处理 — 三种方式</h2>
+            <div class="table-wrapper reveal">
+                <table>
+                    <tr>
+                        <th>关键字</th>
+                        <th>用途</th>
+                        <th>Gas 退还</th>
+                        <th>典型场景</th>
+                    </tr>
+                    <tr>
+                        <td><span class="accent">require</span></td>
+                        <td>条件验证</td>
+                        <td class="green">是</td>
+                        <td>输入检查、权限检查</td>
+                    </tr>
+                    <tr>
+                        <td><span class="orange">revert</span></td>
+                        <td>主动回滚</td>
+                        <td class="green">是</td>
+                        <td>条件分支回滚</td>
+                    </tr>
+                    <tr>
+                        <td><span class="purple">assert</span></td>
+                        <td>内部检查</td>
+                        <td class="orange">否</td>
+                        <td>不应该发生的错误</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 21: 错误处理示例 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">错误处理 — 示例</h2>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="comment">// require：输入验证、权限检查（最常用）</span>
+<span class="keyword">function</span> <span class="function">setValueRequire</span>(<span class="type">uint256</span> _value) <span class="keyword">public</span> {
+    <span class="function">require</span>(_value > <span class="number">0</span>, <span class="string">"Value must be > 0"</span>);
+    <span class="function">require</span>(_value <= <span class="number">1000</span>, <span class="string">"Value must be <= 1000"</span>);
+    value = _value;
+}
+
+<span class="comment">// assert：检查内部不变量</span>
+<span class="keyword">function</span> <span class="function">setValueAssert</span>(<span class="type">uint256</span> _value) <span class="keyword">public</span> {
+    <span class="type">uint256</span> oldValue = value;
+    value = _value;
+    <span class="function">assert</span>(value >= oldValue);  <span class="comment">// 失败=严重bug</span>
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 22: 自定义错误 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">自定义错误 (Solidity 0.8.4+)</h2>
+            <div class="highlight-box orange reveal">
+                <p>字符串错误消息占用存储空间，自定义错误只存储错误名称和参数，<strong>效率更高</strong></p>
+            </div>
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <span>Solidity</span>
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                </div>
+                <pre><code><span class="comment">// 定义自定义错误</span>
+<span class="keyword">error</span> <span class="type">InsufficientBalance</span>(<span class="type">uint256</span> requested, <span class="type">uint256</span> available);
+<span class="keyword">error</span> <span class="type">Unauthorized</span>(<span class="type">address</span> caller);
+
+<span class="comment">// 使用自定义错误</span>
+<span class="keyword">function</span> <span class="function">withdraw</span>(<span class="type">uint256</span> _amount) <span class="keyword">public</span> {
+    <span class="type">uint256</span> balance = <span class="function">balances</span>[msg.<span class="function">sender</span>];
+    <span class="keyword">if</span> (balance < _amount) {
+        <span class="keyword">revert</span> <span class="type">InsufficientBalance</span>(_amount, balance);
+    }
+    <span class="function">balances</span>[msg.<span class="function">sender</span>] -= _amount;
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 23: 最佳实践 -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">综合最佳实践</h2>
+            <div class="card-grid">
+                <div class="card reveal">
+                    <h4>📋 函数设计</h4>
+                    <p>优先使用 external | 优先内部调用 | Internal/Private 用 _ 前缀</p>
+                </div>
+                <div class="card reveal">
+                    <h4>⚠️ 错误处理</h4>
+                    <p>输入验证用 require | 不变量用 assert | 外部调用用 try-catch</p>
+                </div>
+                <div class="card reveal">
+                    <h4>📦 数据结构</h4>
+                    <p>结构体用命名参数 | 映射配合存在性检查 | 遍历用辅助数组</p>
+                </div>
+                <div class="card reveal">
+                    <h4">💾 存储位置</h4>
+                    <p>状态变量默认 Storage | 参数不可修改用 Calldata | 修改结构体用 storage 引用</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 幻灯片 24: 结束页 -->
+    <section class="slide cover-slide">
+        <div class="slide-content">
+            <h1 class="reveal"><span class="highlight">谢谢观看</span></h1>
+            <p class="subtitle reveal">Solidity 进阶：自定义类型与函数</p>
+            <div class="reveal" style="margin-top: 2rem; text-align: center;">
+                <p class="tagline">结构体 · 映射 · 函数可见性 · 错误处理</p>
+            </div>
+            <p class="big-highlight reveal" style="margin-top: 2rem;">Happy Coding!</p>
+        </div>
+    </section>
+
+    <script>
+        /* ===========================================
+           幻灯片演示控制器
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.totalSlides = this.slides.length;
+                this.currentSlide = 0;
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.bindEvents();
+                this.updateSlide(0);
+                this.setupIntersectionObserver();
+            }
+
+            createNavDots() {
+                const nav = document.getElementById('navDots');
+                this.slides.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot';
+                    dot.addEventListener('click', () => this.goToSlide(index));
+                    nav.appendChild(dot);
+                });
+            }
+
+            bindEvents() {
+                // 键盘导航
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    } else if (e.key === 'Home') {
+                        e.preventDefault();
+                        this.goToSlide(0);
+                    } else if (e.key === 'End') {
+                        e.preventDefault();
+                        this.goToSlide(this.totalSlides - 1);
+                    }
+                });
+
+                // 触摸滑动
+                let touchStartY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                });
+                document.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchStartY - touchEndY;
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) this.nextSlide();
+                        else this.prevSlide();
+                    }
+                });
+
+                // 鼠标滚轮
+                let wheelTimeout;
+                document.addEventListener('wheel', (e) => {
+                    clearTimeout(wheelTimeout);
+                    wheelTimeout = setTimeout(() => {
+                        if (e.deltaY > 0) this.nextSlide();
+                        else if (e.deltaY < 0) this.prevSlide();
+                    }, 50);
+                }, { passive: true });
+            }
+
+            setupIntersectionObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const index = Array.from(this.slides).indexOf(entry.target);
+                            this.updateSlide(index);
+                            entry.target.classList.add('visible');
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            updateSlide(index) {
+                this.currentSlide = index;
+
+                // 更新进度条
+                const progress = ((index + 1) / this.totalSlides) * 100;
+                document.getElementById('progressBar').style.width = progress + '%';
+
+                // 更新导航点
+                document.querySelectorAll('.nav-dot').forEach((dot, i) => {
+                    dot.classList.toggle('active', i === index);
+                });
+
+                // 更新页码
+                document.getElementById('slideNumber').textContent =
+                    `${index + 1} / ${this.totalSlides}`;
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.slides[this.currentSlide + 1].scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.slides[this.currentSlide - 1].scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            goToSlide(index) {
+                this.slides[index].scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>
