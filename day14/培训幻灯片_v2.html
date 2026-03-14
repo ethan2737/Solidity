@@ -1,0 +1,1747 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能合约安全与预言机 - 技术培训</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===========================================
+           主题变量 - 终端绿色风格
+           =========================================== */
+        :root {
+            --bg-primary: #0a0f0a;
+            --bg-secondary: #111916;
+            --bg-code: #0d1a0d;
+            --text-primary: #e0ffe0;
+            --text-secondary: #8fae8f;
+            --accent: #00ff41;
+            --accent-dim: #00cc33;
+            --accent-glow: rgba(0, 255, 65, 0.15);
+            --border-color: #1a331a;
+            --warning: #ff6b35;
+            --danger: #ff4444;
+            --success: #00ff41;
+            --font-display: 'Noto Sans SC', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --title-size: clamp(2rem, 5vw, 3.5rem);
+            --h2-size: clamp(1.5rem, 4vw, 2.5rem);
+            --h3-size: clamp(1.2rem, 3vw, 1.8rem);
+            --body-size: clamp(1rem, 2vw, 1.4rem);
+            --code-size: clamp(0.85rem, 1.5vw, 1.1rem);
+            --slide-padding: clamp(1.5rem, 4vw, 3rem);
+            --content-gap: clamp(1rem, 2.5vw, 2rem);
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.6s;
+        }
+
+        /* ===========================================
+           基础样式
+           =========================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-display);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        /* ===========================================
+           幻灯片容器
+           =========================================== */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-primary);
+        }
+
+        .slide-content {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* ===========================================
+           背景效果
+           =========================================== */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 80%, var(--accent-glow) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(0, 255, 65, 0.05) 0%, transparent 40%);
+            pointer-events: none;
+        }
+
+        /* 网格背景 */
+        .grid-bg {
+            background-image:
+                linear-gradient(var(--border-color) 1px, transparent 1px),
+                linear-gradient(90deg, var(--border-color) 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.3;
+        }
+
+        /* ===========================================
+           排版样式
+           =========================================== */
+        h1 {
+            font-size: var(--title-size);
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: var(--content-gap);
+            text-shadow: 0 0 30px var(--accent-glow);
+            letter-spacing: 0.05em;
+        }
+
+        h2 {
+            font-size: var(--h2-size);
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: var(--content-gap);
+            text-align: center;
+        }
+
+        h3 {
+            font-size: var(--h3-size);
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        p, li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            text-align: center;
+            max-width: 900px;
+        }
+
+        /* ===========================================
+           代码块样式
+           =========================================== */
+        .code-container {
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+            margin: var(--content-gap) 0;
+        }
+
+        pre {
+            background: var(--bg-code);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: left;
+            overflow-x: auto;
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            line-height: 1.8;
+            box-shadow:
+                0 0 0 1px var(--border-color),
+                0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        code {
+            color: var(--text-primary);
+        }
+
+        .comment {
+            color: #6a9955;
+        }
+
+        .keyword {
+            color: #569cd6;
+        }
+
+        .string {
+            color: #ce9178;
+        }
+
+        .function {
+            color: #dcdcaa;
+        }
+
+        .number {
+            color: #b5cea8;
+        }
+
+        /* ===========================================
+           列表样式
+           =========================================== */
+        ul, ol {
+            text-align: left;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        li {
+            text-align: left;
+            margin-bottom: 0.8rem;
+            padding-left: 0.5rem;
+        }
+
+        li::marker {
+            color: var(--accent);
+        }
+
+        /* ===========================================
+           表格样式
+           =========================================== */
+        .table-container {
+            width: 100%;
+            max-width: 1000px;
+            overflow-x: auto;
+            margin: var(--content-gap) 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--body-size);
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        tr:hover td {
+            background: var(--bg-code);
+        }
+
+        /* ===========================================
+           卡片样式
+           =========================================== */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1rem 0;
+            width: 100%;
+            max-width: 900px;
+        }
+
+        .card.warning {
+            border-color: var(--warning);
+            background: rgba(255, 107, 53, 0.1);
+        }
+
+        .card.danger {
+            border-color: var(--danger);
+            background: rgba(255, 68, 68, 0.1);
+        }
+
+        .card.success {
+            border-color: var(--success);
+            background: rgba(0, 255, 65, 0.05);
+        }
+
+        /* ===========================================
+           标签样式
+           =========================================== */
+        .badge {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin: 0.2rem;
+        }
+
+        .badge.danger {
+            background: rgba(255, 68, 68, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        .badge.warning {
+            background: rgba(255, 107, 53, 0.2);
+            color: var(--warning);
+            border: 1px solid var(--warning);
+        }
+
+        .badge.success {
+            background: rgba(0, 255, 65, 0.2);
+            color: var(--success);
+            border: 1px solid var(--success);
+        }
+
+        /* ===========================================
+           动画效果
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        /* ===========================================
+           进度条和导航
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent);
+            z-index: 1000;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--border-color);
+            border: 1px solid var(--accent-dim);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot:hover,
+        .nav-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        /* ===========================================
+           响应式设计
+           =========================================== */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(1rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.5rem, 1.5vw, 1rem);
+            }
+            pre {
+                padding: 1rem;
+                font-size: 0.85rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --title-size: clamp(1.5rem, 6vw, 2.5rem);
+                --h2-size: clamp(1.25rem, 4vw, 1.8rem);
+                --body-size: clamp(0.9rem, 2vw, 1.2rem);
+            }
+            .nav-dots {
+                right: 10px;
+            }
+            .nav-dot {
+                width: 8px;
+                height: 8px;
+            }
+        }
+
+        /* ===========================================
+           减少动画
+           =========================================== */
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                transition: opacity 0.3s ease;
+                transform: none;
+                opacity: 1;
+            }
+            html {
+                scroll-behavior: auto;
+            }
+        }
+
+        /* 分隔线 */
+        .divider {
+            width: 100px;
+            height: 3px;
+            background: var(--accent);
+            margin: 1.5rem auto;
+            border-radius: 2px;
+        }
+
+        /* 强调文字 */
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .danger-text {
+            color: var(--danger);
+        }
+
+        .warning-text {
+            color: var(--warning);
+        }
+
+        /* 副标题 */
+        .subtitle {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: var(--content-gap);
+        }
+
+        /* 章节编号 */
+        .section-num {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            color: var(--accent-dim);
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <!-- 进度条 -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- 导航点 -->
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- ==================== 第1页：标题 ==================== -->
+    <section class="slide grid-bg">
+        <div class="slide-content">
+            <p class="reveal section-num">DAY 13</p>
+            <h1 class="reveal">智能合约安全与预言机</h1>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">Solidity 安全开发核心技术培训</p>
+            <p class="reveal" style="margin-top: 2rem; color: var(--accent-dim);">
+                学习日期：2026-03-14
+            </p>
+        </div>
+    </section>
+
+    <!-- ==================== 第2页：目录 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">课程目录</h2>
+            <div class="divider reveal"></div>
+            <ul class="reveal" style="text-align: left; max-width: 600px; margin: 0 auto;">
+                <li><span class="highlight">01</span> &nbsp;智能合约安全基础</li>
+                <li><span class="highlight">02</span> &nbsp;整数溢出与防护</li>
+                <li><span class="highlight">03</span> &nbsp;访问控制与权限管理</li>
+                <li><span class="highlight">04</span> &nbsp;重入攻击与防范</li>
+                <li><span class="highlight">05</span> &nbsp;预言机与随机数</li>
+                <li><span class="highlight">06</span> &nbsp;OpenZeppelin 安全库</li>
+                <li><span class="highlight">07</span> &nbsp;安全开发最佳实践</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- ==================== 第3页：安全重要性 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">01 基础概念</p>
+            <h2 class="reveal">智能合约安全的重要性</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle" style="max-width: 800px;">
+                智能合约一旦部署就不可更改，任何安全漏洞都可能导致不可挽回的资金损失
+            </p>
+            <div class="card danger reveal" style="margin-top: 1.5rem;">
+                <h3 style="color: var(--danger);">历史上著名的安全事件</h3>
+                <ul style="margin-top: 1rem; text-align: left;">
+                    <li><span class="danger-text">The DAO 攻击（2016）</span> — 重入漏洞，损失约 360 万个 ETH</li>
+                    <li><span class="danger-text">Parity 钱包漏洞（2017）</span> — 访问控制问题，损失约 3000 万美元</li>
+                    <li><span class="danger-text">BEC 代币攻击（2018）</span> — 整数溢出漏洞，代币价格暴跌</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第4页：常见漏洞类型 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">01 基础概念</p>
+            <h2 class="reveal">常见智能合约漏洞类型</h2>
+            <div class="divider reveal"></div>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>漏洞类型</th>
+                            <th>危险等级</th>
+                            <th>典型案例</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="danger-text">重入攻击</td>
+                            <td><span class="badge danger">⭐⭐⭐⭐⭐</span></td>
+                            <td>The DAO</td>
+                        </tr>
+                        <tr>
+                            <td class="warning-text">整数溢出</td>
+                            <td><span class="badge warning">⭐⭐⭐⭐</span></td>
+                            <td>BEC 代币</td>
+                        </tr>
+                        <tr>
+                            <td class="danger-text">访问控制</td>
+                            <td><span class="badge danger">⭐⭐⭐⭐⭐</span></td>
+                            <td>Parity 钱包</td>
+                        </tr>
+                        <tr>
+                            <td class="warning-text">预言机操纵</td>
+                            <td><span class="badge warning">⭐⭐⭐⭐</span></td>
+                            <td>多种 DeFi 攻击</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第5页：整数溢出概念 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">02 整数溢出</p>
+            <h2 class="reveal">什么是整数溢出？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle" style="max-width: 800px;">
+                整数溢出是指在进行算术运算时，结果超出了数据类型的表示范围，导致数值回绕的错误
+            </p>
+            <div class="card warning reveal" style="margin-top: 1.5rem;">
+                <h3>溢出类型</h3>
+                <ul style="margin-top: 1rem; text-align: left; font-family: var(--font-mono);">
+                    <li><span class="highlight">上溢（Overflow）</span>：当值超过最大值时，回绕到最小值</li>
+                    <li style="margin-top: 0.5rem;">例如：uint8 max = 255 → 255 + 1 = <span class="danger-text">0</span>（发生上溢）</li>
+                    <li style="margin-top: 1rem;"><span class="highlight">下溢（Underflow）</span>：当值低于最小值时，回绕到最大值</li>
+                    <li style="margin-top: 0.5rem;">例如：uint8 min = 0 → 0 - 1 = <span class="danger-text">255</span>（发生下溢）</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第6页：Solidity版本差异 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">02 整数溢出</p>
+            <h2 class="reveal">Solidity 版本差异</h2>
+            <div class="divider reveal"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 900px; margin-top: 1.5rem;">
+                <div class="card danger reveal">
+                    <h3 style="color: var(--danger);">0.8.0 之前</h3>
+                    <ul style="margin-top: 1rem; text-align: left;">
+                        <li>整数溢出不会抛出异常</li>
+                        <li>溢出会被静默忽略</li>
+                        <li>需要手动使用 SafeMath 库</li>
+                    </ul>
+                </div>
+                <div class="card success reveal">
+                    <h3 style="color: var(--success);">0.8.0 及之后</h3>
+                    <ul style="margin-top: 1rem; text-align: left;">
+                        <li>默认启用溢出检查</li>
+                        <li>溢出会自动 revert 交易</li>
+                        <li>可使用 unchecked 块禁用检查</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第7页：SafeMath ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">02 整数溢出</p>
+            <h2 class="reveal">什么是 SafeMath？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle" style="max-width: 800px;">
+                SafeMath 是 OpenZeppelin 提供的数学运算库，通过显式的溢出检查防止整数溢出问题
+            </p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// SafeMath 库核心实现</span>
+<span class="keyword">library</span> SafeMath {
+    <span class="comment">// 安全的加法运算</span>
+    <span class="keyword">function</span> <span class="function">add</span>(<span class="keyword">uint256</span> a, <span class="keyword">uint256</span> b) <span class="keyword">internal pure</span> <span class="keyword">returns</span> (<span class="keyword">uint256</span>) {
+        <span class="keyword">uint256</span> c = a + b;
+        <span class="function">require</span>(c >= a, <span class="string">"SafeMath: addition overflow"</span>);  <span class="comment">// 检查是否溢出</span>
+        <span class="keyword">return</span> c;
+    }
+
+    <span class="comment">// 安全的减法运算</span>
+    <span class="keyword">function</span> <span class="function">sub</span>(<span class="keyword">uint256</span> a, <span class="keyword">uint256</span> b) <span class="keyword">internal pure</span> <span class="keyword">returns</span> (<span class="keyword">uint256</span>) {
+        <span class="function">require</span>(b <= a, <span class="string">"SafeMath: subtraction overflow"</span>);  <span class="comment">// 检查是否下溢</span>
+        <span class="keyword">return</span> a - b;
+    }
+
+    <span class="comment">// 安全的乘法运算</span>
+    <span class="keyword">function</span> <span class="function">mul</span>(<span class="keyword">uint256</span> a, <span class="keyword">uint256</span> b) <span class="keyword">internal pure</span> <span class="keyword">returns</span> (<span class="keyword">uint256</span>) {
+        <span class="keyword">if</span> (a == 0) <span class="keyword">return</span> 0;
+        <span class="keyword">uint256</span> c = a * b;
+        <span class="function">require</span>(c / a == b, <span class="string">"SafeMath: multiplication overflow"</span>);  <span class="comment">// 检查是否溢出</span>
+        <span class="keyword">return</span> c;
+    }
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第8页：漏洞代码详解 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">02 整数溢出</p>
+            <h2 class="reveal">漏洞代码详解</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">旧版本 Solidity (< 0.8) 批量转账存在整数溢出漏洞</p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// SPDX-License-Identifier: MIT</span>
+<span class="keyword">pragma</span> solidity ^0.7.0;
+
+<span class="keyword">contract</span> <span class="function">Token</span> {
+    <span class="comment">// 代币余额映射</span>
+    <span class="keyword">mapping</span>(<span class="keyword">address</span> => <span class="keyword">uint256</span>) <span class="keyword">public</span> balances;
+
+    <span class="comment">// ⚠️ 批量转账存在整数溢出漏洞</span>
+    <span class="keyword">function</span> <span class="function">batchTransfer</span>(<span class="keyword">address</span>[] <span class="keyword">memory</span> receivers, <span class="keyword">uint256</span> value) <span class="keyword">public</span> {
+        <span class="comment">// 计算总金额 = 单价 × 人数</span>
+        <span class="keyword">uint256</span> totalAmount = value * receivers.length;  <span class="comment">// 可能溢出！</span>
+        <span class="comment">// 溢出情况下 totalAmount 变成 0</span>
+
+        <span class="function">require</span>(balances[msg.sender] >= totalAmount, <span class="string">"Insufficient balance"</span>);
+        <span class="comment">// 溢出后 0 <= 任何余额，检查永远通过！</span>
+
+        balances[msg.sender] -= totalAmount;
+
+        <span class="keyword">for</span> (<span class="keyword">uint256</span> i = 0; i < receivers.length; i++) {
+            balances[receivers[i]] += value;
+        }
+    }
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第9页：攻击流程 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">02 整数溢出</p>
+            <h2 class="reveal">攻击流程解释</h2>
+            <div class="divider reveal"></div>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>步骤</th>
+                            <th>正常情况</th>
+                            <th>攻击情况</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1. 输入</td>
+                            <td>value=100, 2人</td>
+                            <td>value=2^255, 2人</td>
+                        </tr>
+                        <tr>
+                            <td>2. totalAmount</td>
+                            <td>200</td>
+                            <td class="danger-text">2^256 → 溢出→0</td>
+                        </tr>
+                        <tr>
+                            <td>3. 余额检查</td>
+                            <td>余额≥200</td>
+                            <td class="danger-text">余额≥0 → 永远通过</td>
+                        </tr>
+                        <tr>
+                            <td>4. 扣除发送者</td>
+                            <td>余额-200</td>
+                            <td class="danger-text">余额-0 = 不变</td>
+                        </tr>
+                        <tr>
+                            <td>5. 给接收者</td>
+                            <td>每人+100</td>
+                            <td class="danger-text">每人+2^255</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="reveal" style="margin-top: 1.5rem; color: var(--warning);">
+                关键：2^255 × 2 = 2^256，超出 uint256 最大值，溢出后 totalAmount = 0
+            </p>
+        </div>
+    </section>
+
+    <!-- ==================== 第10页：unchecked块 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">02 整数溢出</p>
+            <h2 class="reveal">unchecked 块</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                unchecked 块是 Solidity 0.8+ 提供的功能，允许在特定代码块中禁用溢出检查
+            </p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// 使用 unchecked 块的示例</span>
+<span class="keyword">function</span> <span class="function">uncheckedExample</span>(<span class="keyword">uint256</span> a, <span class="keyword">uint256</span> b) <span class="keyword">public pure</span> <span class="keyword">returns</span> (<span class="keyword">uint256</span>) {
+    <span class="keyword">unchecked</span> {
+        <span class="keyword">return</span> a + b;  <span class="comment">// 不检查溢出</span>
+    }
+}</code></pre>
+            </div>
+            <div class="card warning reveal" style="margin-top: 1.5rem;">
+                <p style="text-align: left;"><span class="warning-text">⚠️ 注意：</span> 仅在确定不会溢出时使用 unchecked 块</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第11页：访问控制概念 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">03 访问控制</p>
+            <h2 class="reveal">什么是访问控制？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle" style="max-width: 800px;">
+                访问控制是指限制谁可以调用特定函数的机制。未授权的访问可能导致资金被盗、状态被恶意修改
+            </p>
+            <div class="card danger reveal" style="margin-top: 1.5rem;">
+                <h3>常见访问控制问题</h3>
+                <ul style="margin-top: 1rem; text-align: left;">
+                    <li>缺少权限检查</li>
+                    <li>权限检查逻辑错误</li>
+                    <li>使用 <span class="danger-text">tx.origin</span> 而非 <span class="highlight">msg.sender</span></li>
+                    <li>权限可以被任意设置</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第12页：msg.sender vs tx.origin ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">03 访问控制</p>
+            <h2 class="reveal">msg.sender vs tx.origin</h2>
+            <div class="divider reveal"></div>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>变量</th>
+                            <th>含义</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="highlight">msg.sender</span></td>
+                            <td>当前调用的直接调用者（可以是用户或合约）</td>
+                        </tr>
+                        <tr>
+                            <td><span class="warning-text">tx.origin</span></td>
+                            <td>交易的原始发起者（最开始的调用者，永远不变）</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="card reveal" style="margin-top: 1.5rem; border-left: 4px solid var(--accent);">
+                <h3>调用链示例</h3>
+                <p style="text-align: left; margin-top: 0.5rem; font-family: var(--font-mono);">
+                    用户A (0xAAA) → 恶意合约B (0xBBB) → 目标合约C (0xCCC)<br><br>
+                    在合约C中：<br>
+                    tx.origin = <span class="danger-text">0xAAA</span> (用户A，永远不变)<br>
+                    msg.sender = <span class="highlight">0xBBB</span> (恶意合约，当前直接调用者)
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第13页：为什么tx.origin不安全 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">03 访问控制</p>
+            <h2 class="reveal">为什么 tx.origin 不安全？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                不是因为 tx.origin 会变，恰恰相反——它太"死板"了，只认最开始的地址
+            </p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// ⚠️ 不安全：使用 tx.origin</span>
+<span class="keyword">function</span> <span class="function">withdraw</span>() <span class="keyword">public</span> {
+    <span class="function">require</span>(tx.origin == owner, <span class="string">"Not owner"</span>);
+    <span class="function">payable</span>(tx.origin).<span class="function">transfer</span>(address(<span class="keyword">this</span>).balance);
+}
+
+<span class="comment">// ✅ 安全：使用 msg.sender</span>
+<span class="keyword">function</span> <span class="function">withdraw</span>() <span class="keyword">public</span> {
+    <span class="function">require</span>(msg.sender == owner, <span class="string">"Not owner"</span>);
+    <span class="function">payable</span>(msg.sender).<span class="function">transfer</span>(address(<span class="keyword">this</span>).balance);
+}</code></pre>
+            </div>
+            <p class="reveal" style="margin-top: 1rem; color: var(--danger);">
+                攻击：用户A (owner) → 恶意合约B → 目标合约C<br>
+                tx.origin = 用户A = owner ✅ 通过！但 msg.sender = 恶意合约B ← 真正的调用者！
+            </p>
+        </div>
+    </section>
+
+    <!-- ==================== 第14页：Ownable ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">03 访问控制</p>
+            <h2 class="reveal">什么是 Ownable？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                Ownable 是 OpenZeppelin 提供的访问控制合约，通过 onlyOwner 修饰符限制特定函数只能由合约所有者调用
+            </p>
+            <div class="code-container reveal">
+                <pre><code><span class="keyword">contract</span> <span class="function">Ownable</span> {
+    <span class="keyword">address</span> <span class="keyword">public</span> owner;
+
+    <span class="comment">// 构造函数：部署者成为所有者</span>
+    <span class="keyword">constructor</span>() {
+        owner = msg.sender;
+    }
+
+    <span class="comment">// onlyOwner 修饰符：检查调用者是否为所有者</span>
+    <span class="keyword">modifier</span> <span class="function">onlyOwner</span>() {
+        <span class="function">require</span>(msg.sender == owner, <span class="string">"Ownable: caller is not the owner"</span>);
+        _;  <span class="comment">// 执行函数体</span>
+    }
+
+    <span class="comment">// 转移所有权</span>
+    <span class="keyword">function</span> <span class="function">transferOwnership</span>(<span class="keyword">address</span> newOwner) <span class="keyword">public</span> <span class="function">onlyOwner</span> {
+        owner = newOwner;
+    }
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第15页：AccessControl ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">03 访问控制</p>
+            <h2 class="reveal">什么是 AccessControl？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                AccessControl 是 OpenZeppelin 提供的更细粒度的访问控制机制，支持多角色管理
+            </p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// 使用 AccessControl 的示例</span>
+<span class="keyword">contract</span> <span class="function">MyContract</span> <span class="keyword">is</span> AccessControl {
+    <span class="comment">// 定义角色</span>
+    <span class="keyword">bytes32</span> <span class="keyword">public constant</span> ADMIN_ROLE = <span class="function">keccak256</span>(<span class="string">"ADMIN_ROLE"</span>);
+    <span class="keyword">bytes32</span> <span class="keyword">public constant</span> MINTER_ROLE = <span class="function">keccak256</span>(<span class="string">"MINTER_ROLE"</span>);
+
+    <span class="comment">// 管理员函数</span>
+    <span class="keyword">function</span> <span class="function">adminFunction</span>() <span class="keyword">public</span> <span class="function">onlyRole</span>(ADMIN_ROLE) {}
+
+    <span class="comment">// 铸币函数</span>
+    <span class="keyword">function</span> <span class="function">mint</span>() <span class="keyword">public</span> <span class="function">onlyRole</span>(MINTER_ROLE) {}
+}</code></pre>
+            </div>
+            <div class="card success reveal" style="margin-top: 1rem;">
+                <p style="text-align: left;">💡 <span class="highlight">最小权限原则：</span>每个角色只应该被授予完成其任务所必需的最小权限</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第16页：重入攻击概念 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">04 重入攻击</p>
+            <h2 class="reveal">什么是重入攻击？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle" style="max-width: 800px;">
+                重入攻击发生在状态更新之前执行外部调用时。攻击者利用回调函数再次进入原函数，导致状态未及时更新
+            </p>
+            <div class="card danger reveal" style="margin-top: 1.5rem;">
+                <h3>涉及的角色</h3>
+                <ul style="margin-top: 1rem; text-align: left;">
+                    <li><span class="highlight">角色1：</span>攻击者（人）- 部署恶意合约</li>
+                    <li><span class="warning-text">角色2：</span>Attacker 合约（恶意合约）</li>
+                    <li><span class="danger-text">角色3：</span>VulnerableBank（受害合约）</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第17页：攻击流程详解 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">04 重入攻击</p>
+            <h2 class="reveal">攻击流程详解</h2>
+            <div class="divider reveal"></div>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// 有重入漏洞的提现函数</span>
+<span class="keyword">function</span> <span class="function">withdraw</span>() <span class="keyword">public</span> {
+    <span class="keyword">uint256</span> amount = balances[msg.sender];
+    <span class="function">require</span>(amount > 0);
+
+    (<span class="keyword">bool</span> success, ) = msg.sender.<span class="function">call</span>{value: amount}(<span class="string">""</span>);
+    <span class="comment">// ↑ 这里会"暂停" withdraw()，去执行 Attacker 的 receive()</span>
+
+    <span class="comment">// ← receive() 执行完后才会回到这里</span>
+    balances[msg.sender] = 0;  <span class="comment">// ← 不知道什么时候才能执行到</span>
+}</code></pre>
+            </div>
+            <p class="reveal" style="margin-top: 1rem; color: var(--warning);">
+                时间线：withdraw() → call() → receive() → withdraw() → call() → receive() → ...<br>
+                形成递归，直到余额=0 或 Gas耗尽
+            </p>
+        </div>
+    </section>
+
+    <!-- ==================== 第18页：Checks-Effects-Interactions ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">04 重入攻击</p>
+            <h2 class="reveal">Checks-Effects-Interactions 模式</h2>
+            <div class="divider reveal"></div>
+            <div class="card success reveal">
+                <h3 style="color: var(--success);">安全编码三步曲</h3>
+                <ol style="margin-top: 1rem; text-align: left; padding-left: 1.5rem;">
+                    <li><span class="highlight">Checks（检查）：</span>验证所有前置条件</li>
+                    <li><span class="highlight">Effects（效果）：</span>更新所有状态变量</li>
+                    <li><span class="highlight">Interactions（交互）：</span>执行外部调用</li>
+                </ol>
+            </div>
+            <p class="reveal" style="margin-top: 1.5rem; color: var(--accent);">
+                为什么有效？因为状态在外部调用之前已经更新，攻击者重入时余额已经是 0 了
+            </p>
+            <div class="code-container reveal" style="margin-top: 1.5rem;">
+                <pre><code><span class="comment">// ✅ 安全的写法：先更新状态，再发送ETH</span>
+<span class="keyword">function</span> <span class="function">withdraw</span>() <span class="keyword">public</span> {
+    <span class="function">require</span>(balances[msg.sender] > 0, <span class="string">"No balance"</span>);  <span class="comment">// 1. 检查</span>
+    <span class="keyword">uint256</span> amount = balances[msg.sender];
+    balances[msg.sender] = 0;  <span class="comment">// 2. 先更新状态！</span>
+    <span class="function">payable</span>(msg.sender).<span class="function">transfer</span>(amount);  <span class="comment">// 3. 再发送ETH</span>
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第19页：ReentrancyGuard ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">04 重入攻击</p>
+            <h2 class="reveal">什么是 ReentrancyGuard？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                ReentrancyGuard 是 OpenZeppelin 提供的重入保护机制，通过"互斥锁"防止函数被递归调用
+            </p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// ReentrancyGuard 核心实现</span>
+<span class="keyword">contract</span> <span class="function">ReentrancyGuard</span> {
+    <span class="keyword">uint256</span> <span class="keyword">private</span> locked = 1;  <span class="comment">// 锁状态：1=未锁定，2=已锁定</span>
+
+    <span class="comment">// 非重入修饰符</span>
+    <span class="keyword">modifier</span> <span class="function">nonReentrant</span>() {
+        <span class="function">require</span>(locked == 1, <span class="string">"ReentrancyGuard: reentrant call"</span>);
+        locked = 2;  <span class="comment">// 上锁</span>
+        _;
+        locked = 1;  <span class="comment">// 解锁</span>
+    }
+}</code></pre>
+            </div>
+            <div class="card success reveal" style="margin-top: 1.5rem;">
+                <p style="text-align: left;">💡 使用方式：在函数上添加 <span class="highlight">nonReentrant</span> 修饰符</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第20页：Pull Payment ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">04 重入攻击</p>
+            <h2 class="reveal">什么是 Pull Payment 模式？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                让用户主动提取资金，而不是由合约主动发送
+            </p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// Pull Payment 模式示例</span>
+<span class="keyword">contract</span> <span class="function">PullPayment</span> {
+    <span class="comment">// 待提取金额映射</span>
+    <span class="keyword">mapping</span>(<span class="keyword">address</span> => <span class="keyword">uint256</span>) <span class="keyword">public</span> payments;
+
+    <span class="comment">// 记录待提取的金额（合约主动调用）</span>
+    <span class="keyword">function</span> <span class="function">_asyncTransfer</span>(<span class="keyword">address</span> to, <span class="keyword">uint256</span> amount) <span class="keyword">internal</span> {
+        payments[to] += amount;
+    }
+
+    <span class="comment">// 用户主动提取（避免重入）</span>
+    <span class="keyword">function</span> <span class="function">withdraw</span>() <span class="keyword">public</span> {
+        <span class="keyword">uint256</span> amount = payments[msg.sender];
+        <span class="function">require</span>(amount > 0);
+        payments[msg.sender] = 0;  <span class="comment">// 先清零</span>
+        <span class="function">payable</span>(msg.sender).<span class="function">transfer</span>(amount);  <span class="comment">// 后转账</span>
+    }
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第21页：预言机概念 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">05 预言机</p>
+            <h2 class="reveal">什么是预言机？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle" style="max-width: 800px;">
+                预言机是连接区块链与外部世界的桥梁，用于获取链下数据（价格、天气、股票等）
+            </p>
+            <div class="card warning reveal" style="margin-top: 1.5rem;">
+                <h3>为什么需要预言机？</h3>
+                <ul style="margin-top: 1rem; text-align: left;">
+                    <li>DeFi 合约需要价格数据计算清算阈值</li>
+                    <li>保险合约需要天气数据触发赔付</li>
+                    <li>游戏需要随机数</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第22页：区块链局限性 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">05 预言机</p>
+            <h2 class="reveal">区块链为什么不能自己获取外部数据？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">区块链是个<span class="highlight">封闭系统</span></p>
+            <div class="card danger reveal" style="margin-top: 1.5rem;">
+                <h3 style="color: var(--danger);">区块链只能读取 ❌</h3>
+                <ul style="margin-top: 1rem; text-align: left; font-family: var(--font-mono);">
+                    <li>❌ 今天的天气</li>
+                    <li>❌ ETH/USD 价格</li>
+                    <li>❌ 世界杯比赛结果</li>
+                </ul>
+            </div>
+            <div class="card success reveal" style="margin-top: 1.5rem;">
+                <h3 style="color: var(--success);">区块链可以读取 ✅</h3>
+                <ul style="margin-top: 1rem; text-align: left; font-family: var(--font-mono);">
+                    <li>✅ 链上数据（其他合约的状态）</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第23页：Chainlink ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">05 预言机</p>
+            <h2 class="reveal">什么是 Chainlink？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                Chainlink 是最流行的去中心化预言机网络
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; max-width: 900px; margin-top: 1.5rem;">
+                <div class="card danger reveal">
+                    <h3 style="color: var(--danger);">传统中心化</h3>
+                    <p style="text-align: center; margin-top: 1rem; font-family: var(--font-mono);">
+                        ┌─────────┐<br>
+                        │ 单一服务器 │ ← 单点故障！<br>
+                        └─────────┘
+                    </p>
+                </div>
+                <div class="card success reveal">
+                    <h3 style="color: var(--success);">Chainlink 去中心化</h3>
+                    <p style="text-align: center; margin-top: 1rem; font-family: var(--font-mono);">
+                        ┌───┐ ┌───┐ ┌───┐ ┌───┐<br>
+                        │ A │ │ B │ │ C │ │ D │ ← 多个独立节点<br>
+                        └───┘ └───┘ └───┘ └───┘<br>
+                           ↓     ↓     ↓     ↓<br>
+                           数据聚合 → 最终结果
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第24页：Chainlink服务 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">05 预言机</p>
+            <h2 class="reveal">Chainlink 两种服务</h2>
+            <div class="divider reveal"></div>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>服务</th>
+                            <th>用途</th>
+                            <th>调用方式</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="highlight">Data Feeds</span></td>
+                            <td>价格数据</td>
+                            <td><span class="badge success">同步（直接返回）</span></td>
+                        </tr>
+                        <tr>
+                            <td><span class="highlight">VRF</span></td>
+                            <td>随机数</td>
+                            <td><span class="badge warning">异步（回调返回）</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="reveal" style="margin-top: 1.5rem;">
+                <span class="highlight">简单理解：</span><br>
+                Data Feeds = 打电话问价格 → 直接回答（同步）<br>
+                VRF = 点外卖 → 做好后送过来（异步）
+            </p>
+        </div>
+    </section>
+
+    <!-- ==================== 第25页：Data Feeds代码 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">05 预言机</p>
+            <h2 class="reveal">Data Feeds 代码示例</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">方式一：Data Feeds（价格）- 同步调用</p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// 导入 Chainlink 接口</span>
+<span class="keyword">import</span> <span class="string">"@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol"</span>;
+
+<span class="keyword">contract</span> <span class="function">PriceConsumer</span> {
+    <span class="comment">// ETH/USD 价格订阅地址</span>
+    <span class="keyword">address</span> priceFeedAddress = 0x694AA1769357215DE4FAC081BF1f309aDC325306;
+
+    <span class="comment">// 获取最新价格</span>
+    <span class="keyword">function</span> <span class="function">getLatestPrice</span>() <span class="keyword">public view returns</span> (<span class="keyword">int256</span>) {
+        <span class="comment">// 创建价格数据接口实例</span>
+        AggregatorV3Interface priceFeed = AggregatorV3Interface(priceFeedAddress);
+        <span class="comment">// 入参：无</span>
+        <span class="comment">// 返回值：(price, startedAt, updatedAt, answeredInRound)</span>
+        (<span class="keyword">int256</span> price, , , ) = priceFeed.<span class="function">latestRoundData</span>();
+        <span class="keyword">return</span> price;
+    }
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第26页：VRF代码 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">05 预言机</p>
+            <h2 class="reveal">VRF 代码示例</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">方式二：VRF（随机数）- 异步调用</p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// 1. 请求随机数</span>
+<span class="keyword">function</span> <span class="function">requestRandomWords</span>() <span class="keyword">external</span> {
+    <span class="keyword">uint256</span> requestId = VRFCoordinatorV2Interface(vrfCoordinator).<span class="function">requestRandomWords</span>(
+        keyHash,              <span class="comment">// VRF密钥哈希</span>
+        subscriptionId,       <span class="comment">// 订阅ID</span>
+        requestConfirmations, <span class="comment">// 确认数</span>
+        callbackGasLimit,     <span class="comment">// Gas限制</span>
+        1                     <span class="comment">// 随机数数量</span>
+    );
+    <span class="comment">// 返回 requestId，真正返回随机数需要等待回调</span>
+}
+
+<span class="comment">// 2. Chainlink 回调返回随机数</span>
+<span class="keyword">function</span> <span class="function">fulfillRandomWords</span>(
+    <span class="keyword">uint256</span> requestId,           <span class="comment">// 用来匹配是哪个请求</span>
+    <span class="keyword">uint256</span>[] <span class="keyword">memory</span> randomWords  <span class="comment">// 随机数数组</span>
+) <span class="keyword">internal override</span> {
+    requestIdToRandom[requestId] = randomWords[0];
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第27页：不安全的随机数 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">05 预言机</p>
+            <h2 class="reveal">不安全的随机数</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                区块链是确定性的，无法生成真正的随机数
+            </p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// ⚠️ 以下方法都不安全</span>
+
+<span class="comment">// 方法1：使用区块哈希 - 矿工可操纵</span>
+<span class="keyword">uint256</span> random1 = <span class="function">blockhash</span>(block.number - 1) % 100;
+
+<span class="comment">// 方法2：使用时间戳 - 矿工可操纵</span>
+<span class="keyword">uint256</span> random2 = block.timestamp % 100;
+
+<span class="comment">// 方法3：使用 PREVRANDAO - PoS 中可预测</span>
+<span class="keyword">uint256</span> random3 = block.prevrandao % 100;</code></pre>
+            </div>
+            <div class="card warning reveal" style="margin-top: 1.5rem;">
+                <p style="text-align: left;">⚠️ 矿工/验证者可以影响这些值，从而操纵结果</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第28页：Chainlink VRF ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">05 预言机</p>
+            <h2 class="reveal">什么是 Chainlink VRF？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                Chainlink VRF 是可验证随机数服务，通过加密证明确保随机数真实性
+            </p>
+            <div class="card success reveal" style="margin-top: 1.5rem;">
+                <h3>工作原理</h3>
+                <ol style="margin-top: 1rem; text-align: left;">
+                    <li>合约请求随机数</li>
+                    <li>Chainlink 节点生成随机数 + 签名</li>
+                    <li>返回给合约</li>
+                    <li>合约验证证明</li>
+                    <li>使用随机数</li>
+                </ol>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第29页：OpenZeppelin ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">06 OpenZeppelin</p>
+            <h2 class="reveal">什么是 OpenZeppelin？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">
+                OpenZeppelin = 智能合约的"标准工具箱"
+            </p>
+            <div class="card reveal" style="margin-top: 1.5rem;">
+                <h3>相当于编程中的</h3>
+                <ul style="margin-top: 1rem; text-align: left;">
+                    <li>Java 的 Spring</li>
+                    <li>Python 的 Django</li>
+                    <li>JavaScript 的 React</li>
+                </ul>
+            </div>
+            <div class="card warning reveal" style="margin-top: 1.5rem;">
+                <h3>解决的问题</h3>
+                <ul style="margin-top: 1rem; text-align: left;">
+                    <li>安全漏洞难发现</li>
+                    <li>很多功能大家都要用（权限管理、代币等）</li>
+                    <li>需要经过审计的安全代码</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第30页：OpenZeppelin功能 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">06 OpenZeppelin</p>
+            <h2 class="reveal">OpenZeppelin 提供的功能</h2>
+            <div class="divider reveal"></div>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>类别</th>
+                            <th>合约</th>
+                            <th>用途</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td rowspan="2"><span class="highlight">访问控制</span></td>
+                            <td>Ownable</td>
+                            <td>所有者权限管理</td>
+                        </tr>
+                        <tr>
+                            <td>AccessControl</td>
+                            <td>多角色权限管理</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="2"><span class="highlight">安全</span></td>
+                            <td>ReentrancyGuard</td>
+                            <td>重入攻击保护</td>
+                        </tr>
+                        <tr>
+                            <td>Pausable</td>
+                            <td>暂停合约功能</td>
+                        </tr>
+                        <tr>
+                            <td rowspan="2"><span class="highlight">代币</span></td>
+                            <td>ERC20</td>
+                            <td>同质化代币标准</td>
+                        </tr>
+                        <tr>
+                            <td>ERC721</td>
+                            <td>NFT 代币标准</td>
+                        </tr>
+                        <tr>
+                            <td><span class="highlight">数学</span></td>
+                            <td>SafeMath</td>
+                            <td>安全数学运算</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第31页：如何使用 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">06 OpenZeppelin</p>
+            <h2 class="reveal">如何使用 OpenZeppelin？</h2>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle">安装命令</p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment"># 安装 OpenZeppelin 合约库</span>
+npm install @openzeppelin/contracts</code></pre>
+            </div>
+            <p class="reveal subtitle" style="margin-top: 1.5rem;">代码示例</p>
+            <div class="code-container reveal">
+                <pre><code><span class="comment">// 导入 OpenZeppelin 合约</span>
+<span class="keyword">import</span> <span class="string">"@openzeppelin/contracts/access/Ownable.sol"</span>;
+<span class="keyword">import</span> <span class="string">"@openzeppelin/contracts/security/ReentrancyGuard.sol"</span>;
+<span class="keyword">import</span> <span class="string">"@openzeppelin/contracts/security/Pausable.sol"</span>;
+
+<span class="comment">// 组合多个继承</span>
+<span class="keyword">contract</span> <span class="function">MyContract</span> <span class="keyword">is</span> Ownable, ReentrancyGuard, Pausable {
+    <span class="comment">// 使用修饰符：非重入、未暂停</span>
+    <span class="keyword">function</span> <span class="function">withdraw</span>() <span class="keyword">public</span> <span class="function">nonReentrant</span> <span class="function">whenNotPaused</span> {
+        <span class="comment">// ...</span>
+    }
+}</code></pre>
+            </div>
+            <p class="reveal" style="margin-top: 1rem;">
+                官网：<span class="highlight">https://openzeppelin.com/</span>
+            </p>
+        </div>
+    </section>
+
+    <!-- ==================== 第32页：安全原则 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">07 最佳实践</p>
+            <h2 class="reveal">核心安全原则</h2>
+            <div class="divider reveal"></div>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>原则</th>
+                            <th>描述</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="highlight">Checks-Effects-Interactions</span></td>
+                            <td>先检查、再更新状态、最后外部调用</td>
+                        </tr>
+                        <tr>
+                            <td><span class="highlight">最小权限原则</span></td>
+                            <td>每个角色只授予必要的权限</td>
+                        </tr>
+                        <tr>
+                            <td><span class="highlight">溢出防护</span></td>
+                            <td>使用 Solidity 0.8+ 或 SafeMath</td>
+                        </tr>
+                        <tr>
+                            <td><span class="highlight">安全随机数</span></td>
+                            <td>使用 Chainlink VRF</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第33页：部署检查清单 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">07 最佳实践</p>
+            <h2 class="reveal">部署前检查清单</h2>
+            <div class="divider reveal"></div>
+            <div class="card success reveal">
+                <ul style="text-align: left;">
+                    <li>✅ 所有函数都有适当的访问控制</li>
+                    <li>✅ 算术运算有溢出保护</li>
+                    <li>✅ 外部调用在状态更新之后</li>
+                    <li>✅ 使用 SafeMath 或 Solidity 0.8+</li>
+                    <li>✅ 避免 tx.origin 进行权限检查</li>
+                    <li>✅ 验证所有用户输入</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第34页：测试检查清单 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">07 最佳实践</p>
+            <h2 class="reveal">测试检查清单</h2>
+            <div class="divider reveal"></div>
+            <div class="card success reveal">
+                <ul style="text-align: left;">
+                    <li>✅ 编写全面的测试用例</li>
+                    <li>✅ 测试边界条件</li>
+                    <li>✅ 测试访问控制</li>
+                    <li>✅ 测试溢出场景</li>
+                    <li>✅ 考虑重入攻击场景</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第35页：Q&A ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">08 Q&A</p>
+            <h2 class="reveal">常见问题解答</h2>
+            <div class="divider reveal"></div>
+            <div class="card reveal" style="text-align: left;">
+                <p><span class="highlight">Q1: value * receivers.length 为什么会有溢出风险？</span></p>
+                <p style="margin-top: 0.5rem;">A: 当 value 非常大时，乘以 receivers.length 可能超过 uint256 最大值。例如：value = 2^255，receivers.length = 2，2^255 × 2 = 2^256 > uint256.max，溢出结果变成 0</p>
+            </div>
+            <div class="card reveal" style="text-align: left; margin-top: 1rem;">
+                <p><span class="highlight">Q2: receivers.length 是什么？</span></p>
+                <p style="margin-top: 0.5rem;">A: receivers 是传入的地址数组参数，receivers.length 是数组长度</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第36页：Q&A2 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">08 Q&A</p>
+            <h2 class="reveal">常见问题解答（续）</h2>
+            <div class="divider reveal"></div>
+            <div class="card reveal" style="text-align: left;">
+                <p><span class="highlight">Q3: msg.sender 中的 "sender" 是什么意思？</span></p>
+                <p style="margin-top: 0.5rem;">A: "sender" 是"发送者"的意思，指"发送这笔交易的人"。类比：寄信人 = msg.sender，邮局 = 以太坊网络，收信人 = 合约地址</p>
+            </div>
+            <div class="card reveal" style="text-align: left; margin-top: 1rem;">
+                <p><span class="highlight">Q4: tx.origin == owner 判断是永久成立的吗？</span></p>
+                <p style="margin-top: 0.5rem;">A: 是的，tx.origin 永远指向交易的最初发起者，永远不变。但这恰恰是问题！攻击者利用用户是 owner 的身份，通过恶意合约间接调用目标合约，目标检查 tx.origin 发现是 owner 就通过了</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第37页：Q&A3 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <p class="reveal section-num">08 Q&A</p>
+            <h2 class="reveal">常见问题解答（续）</h2>
+            <div class="divider reveal"></div>
+            <div class="card reveal" style="text-align: left;">
+                <p><span class="highlight">Q5: 重入攻击中时间间隔很短，攻击者怎么实现多次调用？</span></p>
+                <p style="margin-top: 0.5rem;">A: 不是"快速多次"，而是"递归调用"！</p>
+                <ol style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                    <li>withdraw() 执行到 call()</li>
+                    <li>call() 触发 receive()</li>
+                    <li>receive() 中又调用 withdraw()</li>
+                    <li>形成递归循环</li>
+                </ol>
+                <p style="margin-top: 0.5rem;">直到：银行余额=0 或 Gas耗尽</p>
+            </div>
+            <div class="card reveal" style="text-align: left; margin-top: 1rem;">
+                <p><span class="highlight">Q6: Chainlink 是中心化的数据中心吗？</span></p>
+                <p style="margin-top: 0.5rem;">A: 不是。Chainlink 是去中心化的节点网络：全球分布的多个独立节点，每个节点独立从多个数据源获取数据，数据聚合后才返回</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第38页：知识点回顾 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">知识点快速回顾</h2>
+            <div class="divider reveal"></div>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>概念</th>
+                            <th>简述</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>整数溢出</td>
+                            <td>算术运算超出数据类型范围导致数值回绕</td>
+                        </tr>
+                        <tr>
+                            <td>SafeMath</td>
+                            <td>通过显式检查防止溢出的数学库</td>
+                        </tr>
+                        <tr>
+                            <td>访问控制</td>
+                            <td>限制谁可以调用特定函数的机制</td>
+                        </tr>
+                        <tr>
+                            <td>Ownable</td>
+                            <td>OpenZeppelin 提供的所有权管理合约</td>
+                        </tr>
+                        <tr>
+                            <td>tx.origin</td>
+                            <td>交易的原始发起者地址（永远不变）</td>
+                        </tr>
+                        <tr>
+                            <td>msg.sender</td>
+                            <td>当前调用的直接调用者地址</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第39页：知识点回顾2 ==================== -->
+    <section class="slide">
+        <div class="slide-content">
+            <h2 class="reveal">知识点快速回顾（续）</h2>
+            <div class="divider reveal"></div>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>概念</th>
+                            <th>简述</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>重入攻击</td>
+                            <td>通过外部调用再次进入原函数的攻击方式</td>
+                        </tr>
+                        <tr>
+                            <td>Checks-Effects-Interactions</td>
+                            <td>先检查、后更新状态、再外部调用的安全模式</td>
+                        </tr>
+                        <tr>
+                            <td>ReentrancyGuard</td>
+                            <td>OpenZeppelin 提供的重入保护机制</td>
+                        </tr>
+                        <tr>
+                            <td>Pull Payment</td>
+                            <td>让用户主动提取资金的安全支付模式</td>
+                        </tr>
+                        <tr>
+                            <td>预言机</td>
+                            <td>连接区块链与外部世界的桥梁</td>
+                        </tr>
+                        <tr>
+                            <td>Chainlink</td>
+                            <td>去中心化预言机网络</td>
+                        </tr>
+                        <tr>
+                            <td>Chainlink VRF</td>
+                            <td>可验证的随机数生成服务</td>
+                        </tr>
+                        <tr>
+                            <td>OpenZeppelin</td>
+                            <td>智能合约的"标准工具箱"</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ==================== 第40页：结束 ==================== -->
+    <section class="slide grid-bg">
+        <div class="slide-content">
+            <h1 class="reveal" style="font-size: clamp(2.5rem, 6vw, 4rem);">学习完成！</h1>
+            <div class="divider reveal"></div>
+            <p class="reveal subtitle" style="font-size: 1.5rem;">
+                智能合约安全是区块链开发的核心<br>
+                牢记安全原则，构建可靠合约
+            </p>
+            <p class="reveal" style="margin-top: 2rem; color: var(--accent-dim);">
+                🎉 感谢学习！
+            </p>
+        </div>
+    </section>
+
+    <script>
+        /* ===========================================
+           幻灯片控制器
+           处理导航、动画和交互
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.progressBar = document.getElementById('progressBar');
+                this.navDots = document.getElementById('navDots');
+                this.currentSlide = 0;
+                this.touchStartY = 0;
+                this.touchEndY = 0;
+
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.bindEvents();
+                this.updateProgress();
+                this.observer = new IntersectionObserver(
+                    (entries) => {
+                        entries.forEach(entry => {
+                            if (entry.isIntersecting) {
+                                entry.target.classList.add('visible');
+                                const slideIndex = Array.from(this.slides).indexOf(entry.target);
+                                this.updateNavDots(slideIndex);
+                                this.currentSlide = slideIndex;
+                                this.updateProgress();
+                            }
+                        });
+                    },
+                    { threshold: 0.5 }
+                );
+
+                this.slides.forEach(slide => this.observer.observe(slide));
+            }
+
+            createNavDots() {
+                this.slides.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot';
+                    dot.addEventListener('click', () => this.goToSlide(index));
+                    this.navDots.appendChild(dot);
+                });
+                this.updateNavDots(0);
+            }
+
+            updateNavDots(index) {
+                const dots = this.navDots.querySelectorAll('.nav-dot');
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === index);
+                });
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSlide + 1) / this.slides.length) * 100;
+                this.progressBar.style.width = `${progress}%`;
+            }
+
+            goToSlide(index) {
+                if (index >= 0 && index < this.slides.length) {
+                    this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.slides.length - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            bindEvents() {
+                // 键盘导航
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft' || e.key === 'Backspace') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+
+                // 触摸滑动
+                document.addEventListener('touchstart', (e) => {
+                    this.touchStartY = e.changedTouches[0].screenY;
+                });
+
+                document.addEventListener('touchend', (e) => {
+                    this.touchEndY = e.changedTouches[0].screenY;
+                    this.handleSwipe();
+                });
+
+                // 鼠标滚轮
+                let wheelTimeout;
+                document.addEventListener('wheel', (e) => {
+                    if (wheelTimeout) return;
+                    wheelTimeout = setTimeout(() => {
+                        wheelTimeout = null;
+                    }, 300);
+
+                    if (e.deltaY > 0) {
+                        this.nextSlide();
+                    } else {
+                        this.prevSlide();
+                    }
+                }, { passive: true });
+            }
+
+            handleSwipe() {
+                const diff = this.touchStartY - this.touchEndY;
+                if (Math.abs(diff) > 50) {
+                    if (diff > 0) {
+                        this.nextSlide();
+                    } else {
+                        this.prevSlide();
+                    }
+                }
+            }
+        }
+
+        // 初始化
+        new SlidePresentation();
+    </script>
+</body>
+</html>

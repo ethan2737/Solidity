@@ -1,0 +1,19 @@
+{
+  "name": "day14-security-demo",
+  "version": "1.0.0",
+  "description": "智能合约安全与预言机演示项目",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "node": "hardhat node",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "verify": "hardhat run scripts/verify.js --network localhost",
+    "test:ai": "hardhat test test/ai-automated-test.js"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^4.9.5",
+    "hardhat": "^2.19.4"
+  }
+}
