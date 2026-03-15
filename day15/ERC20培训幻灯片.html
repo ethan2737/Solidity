@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day15：实战案例-ERC20代币合约</title>
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700&display=swap">
+    <style>
+        /* ===========================================
+           科技风格主题 - Neon Cyber
+           =========================================== */
+        :root {
+            --bg-primary: #0a0f1c;
+            --bg-secondary: #111827;
+            --bg-gradient: linear-gradient(135deg, #0a0f1c 0%, #1a1f35 100%);
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --accent-cyan: #00f5ff;
+            --accent-magenta: #ff00ff;
+            --accent-purple: #8b5cf6;
+            --accent-green: #00ff88;
+            --accent-orange: #ff6b35;
+            --accent-glow-cyan: rgba(0, 245, 255, 0.4);
+            --accent-glow-magenta: rgba(255, 0, 255, 0.3);
+            --border-color: rgba(0, 245, 255, 0.2);
+            --card-bg: rgba(17, 24, 39, 0.8);
+
+            --font-display: 'Clash Display', sans-serif;
+            --font-body: 'Satoshi', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+            --title-size: clamp(2rem, 5vw, 4rem);
+            --h2-size: clamp(1.5rem, 3.5vw, 2.5rem);
+            --h3-size: clamp(1.1rem, 2vw, 1.5rem);
+            --body-size: clamp(0.8rem, 1.2vw, 1rem);
+            --code-size: clamp(0.65rem, 1vw, 0.85rem);
+
+            --slide-padding: clamp(1.5rem, 4vw, 4rem);
+            --content-gap: clamp(1rem, 2vw, 2rem);
+            --element-gap: clamp(0.5rem, 1vw, 1rem);
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.8s;
+        }
+
+        /* ===========================================
+           基础样式
+           =========================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-gradient);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+            line-height: 1.6;
+        }
+
+        /* ===========================================
+           幻灯片容器 - 关键：每个幻灯片占满视口
+           =========================================== */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+            max-height: 100%;
+            overflow: hidden;
+        }
+
+        /* ===========================================
+           背景效果
+           =========================================== */
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(0, 245, 255, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+            pointer-events: none;
+        }
+
+        .grid-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image:
+                linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+        }
+
+        /* ===========================================
+           标题样式
+           =========================================== */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 700;
+            margin-bottom: var(--content-gap);
+            background: linear-gradient(135deg, var(--accent-cyan) 0%, var(--accent-purple) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 60px var(--accent-glow-cyan);
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--content-gap);
+            display: flex;
+            align-items: center;
+            gap: var(--element-gap);
+        }
+
+        h2::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: clamp(1.5rem, 3vw, 2rem);
+            background: linear-gradient(180deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 2px;
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 500;
+            color: var(--accent-cyan);
+            margin-bottom: var(--element-gap);
+        }
+
+        p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: var(--element-gap);
+        }
+
+        /* 重点概念放大突出 */
+        .highlight {
+            color: var(--accent-cyan);
+            font-weight: 600;
+            font-size: 1.2em;
+        }
+
+        .highlight-magenta {
+            color: var(--accent-magenta);
+            font-weight: 600;
+        }
+
+        .highlight-green {
+            color: var(--accent-green);
+            font-weight: 600;
+        }
+
+        .highlight-orange {
+            color: var(--accent-orange);
+            font-weight: 600;
+        }
+
+        /* ===========================================
+           代码块样式
+           =========================================== */
+        .code-block {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: clamp(1rem, 2vw, 1.5rem);
+            margin: var(--element-gap) 0;
+            overflow-x: auto;
+            box-shadow: 0 4px 30px rgba(0, 245, 255, 0.1);
+        }
+
+        .code-block code {
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            line-height: 1.8;
+            color: var(--text-primary);
+            text-align: left;
+            display: block;
+            white-space: pre;
+        }
+
+        .code-block .comment {
+            color: #6b7280;
+            font-style: italic;
+        }
+
+        .code-block .keyword {
+            color: var(--accent-magenta);
+        }
+
+        .code-block .string {
+            color: var(--accent-green);
+        }
+
+        .code-block .function {
+            color: var(--accent-cyan);
+        }
+
+        .code-block .number {
+            color: var(--accent-orange);
+        }
+
+        /* ===========================================
+           表格样式
+           =========================================== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: var(--element-gap) 0;
+            font-size: var(--body-size);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            color: var(--accent-cyan);
+            padding: var(--element-gap);
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent-cyan);
+        }
+
+        td {
+            padding: var(--element-gap);
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        tr:hover td {
+            background: rgba(0, 245, 255, 0.05);
+        }
+
+        /* ===========================================
+           列表样式
+           =========================================== */
+        ul, ol {
+            margin: var(--element-gap) 0;
+            padding-left: 1.5em;
+        }
+
+        li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: 0.5em;
+            line-height: 1.8;
+        }
+
+        li::marker {
+            color: var(--accent-cyan);
+        }
+
+        /* ===========================================
+           卡片样式
+           =========================================== */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: var(--content-gap);
+            margin: var(--element-gap) 0;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+            gap: var(--content-gap);
+            margin: var(--content-gap) 0;
+        }
+
+        .card-item {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: var(--content-gap);
+            transition: all 0.3s ease;
+        }
+
+        .card-item:hover {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 30px rgba(0, 245, 255, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .card-item h3 {
+            margin-bottom: 0.5em;
+        }
+
+        /* ===========================================
+           流程图样式
+           =========================================== */
+        .flow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: var(--element-gap);
+            margin: var(--content-gap) 0;
+        }
+
+        .flow-item {
+            background: var(--bg-secondary);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 12px;
+            padding: var(--element-gap);
+            text-align: center;
+            min-width: 150px;
+            color: var(--accent-cyan);
+            font-weight: 500;
+        }
+
+        .flow-arrow {
+            color: var(--accent-magenta);
+            font-size: 1.5em;
+        }
+
+        /* ===========================================
+           动画效果
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        /* 闪烁光效 */
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px var(--accent-glow-cyan); }
+            50% { box-shadow: 0 0 40px var(--accent-glow-cyan), 0 0 60px var(--accent-glow-magenta); }
+        }
+
+        .glow-box {
+            animation: glow 3s ease-in-out infinite;
+            border: 2px solid var(--accent-cyan);
+        }
+
+        /* ===========================================
+           进度条和导航
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple), var(--accent-magenta));
+            z-index: 1000;
+            transition: width 0.3s ease;
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1000;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: 2px solid var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot.active {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        /* ===========================================
+           响应式适配
+           =========================================== */
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(1rem, 3vw, 2rem);
+                --content-gap: clamp(0.5rem, 1.5vw, 1rem);
+            }
+        }
+
+        @media (max-width: 768px) {
+            :root {
+                --title-size: clamp(1.5rem, 8vw, 2.5rem);
+                --h2-size: clamp(1.25rem, 5vw, 1.75rem);
+            }
+
+            .nav-dots {
+                right: 10px;
+            }
+
+            .flow {
+                flex-direction: column;
+            }
+
+            .flow-arrow {
+                transform: rotate(90deg);
+            }
+        }
+
+        /* ===========================================
+           减少动画
+           =========================================== */
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                opacity: 1;
+                transform: none;
+                transition: none;
+            }
+
+            html {
+                scroll-behavior: auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 进度条 -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- 导航点 -->
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- ===========================================
+         幻灯片 1: 封面
+         =========================================== -->
+    <section class="slide" id="slide1">
+        <div class="grid-bg"></div>
+        <div class="slide-content" style="text-align: center;">
+            <h1 class="reveal glow-box" style="padding: 2rem; border-radius: 20px;">Day 15</h1>
+            <h2 class="reveal" style="justify-content: center; font-size: clamp(1.8rem, 4vw, 3rem);">实战案例-ERC20代币合约</h2>
+            <p class="reveal" style="font-size: 1.2em; margin-top: 2rem;">智能合约开发实战培训</p>
+            <p class="reveal" style="color: var(--accent-cyan);">Solidity + Hardhat + OpenZeppelin</p>
+        </div>
+        <div class="slide-number">1 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 2: 什么是ERC20
+         =========================================== -->
+    <section class="slide" id="slide2">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">什么是 ERC20 代币</h2>
+
+            <div class="reveal" style="margin: 2rem 0;">
+                <p style="font-size: 1.3em;"><span class="highlight">ERC20 = 一套"代币标准"</span></p>
+                <p style="margin-top: 1rem;">ERC20 是 Ethereum Request for Comments 第20号提案，定义了以太坊上代币的技术标准。</p>
+            </div>
+
+            <div class="card-grid reveal">
+                <div class="card-item">
+                    <h3>🏦 以太坊</h3>
+                    <p>去中心化的"银行系统"</p>
+                </div>
+                <div class="card-item">
+                    <h3>💳 ERC20 代币</h3>
+                    <p>银行发行的"存折"</p>
+                </div>
+                <div class="card-item">
+                    <h3>📋 ERC20 标准</h3>
+                    <p>存折的"使用规则"</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">2 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 3: 为什么需要标准
+         =========================================== -->
+    <section class="slide" id="slide3">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">为什么需要统一标准？</h2>
+
+            <div class="reveal" style="margin: 1.5rem 0;">
+                <h3 style="color: var(--accent-orange);">❌ 没有标准之前</h3>
+                <div class="code-block">
+                    <code>比特币: send(to, amount)
+以太坊: transfer(to, amount)
+莱特币: sendMoney(to, amount)
+
+每种代币接口不同，钱包和交易所需要单独适配</code>
+                </div>
+            </div>
+
+            <div class="reveal" style="margin: 1.5rem 0;">
+                <h3 style="color: var(--accent-green);">✅ 有了 ERC20 之后</h3>
+                <div class="code-block">
+                    <code>所有代币都用: transfer(to, amount)
+
+✅ 钱包只需写一次代码
+✅ 交易所快速上线新代币
+✅ DeFi 协议与任何代币交互</code>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">3 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 4: ERC20标准接口
+         =========================================== -->
+    <section class="slide" id="slide4">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">ERC20 标准接口</h2>
+            <p class="reveal">ERC20 定义了 <span class="highlight">6 个函数</span> + <span class="highlight-magenta">2 个事件</span></p>
+
+            <div class="reveal" style="margin-top: 1.5rem;">
+                <h3 style="color: var(--accent-cyan);">📌 必须的函数</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>函数</th>
+                            <th>作用</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>totalSupply</td><td>代币总供应量</td></tr>
+                        <tr><td>balanceOf(地址)</td><td>查询余额</td></tr>
+                        <tr><td>transfer(地址, 数量)</td><td>转账</td></tr>
+                        <tr><td>approve(地址, 数量)</td><td>授权</td></tr>
+                        <tr><td>transferFrom(从, 到, 数量)</td><td>代理转账</td></tr>
+                        <tr><td>allowance(所有者, 使用者)</td><td>查询授权额度</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="reveal" style="margin-top: 1rem;">
+                <h3 style="color: var(--accent-magenta);">📌 必须的事件</h3>
+                <ul>
+                    <li><span class="highlight">Transfer</span> - 转账时触发</li>
+                    <li><span class="highlight-magenta">Approval</span> - 授权时触发</li>
+                </ul>
+            </div>
+        </div>
+        <div class="slide-number">4 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 5: 核心机制
+         =========================================== -->
+    <section class="slide" id="slide5">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">核心机制：approve + transferFrom</h2>
+
+            <div class="reveal" style="margin: 2rem 0; text-align: center;">
+                <div class="flow">
+                    <div class="flow-item">
+                        <p style="color: var(--accent-cyan); font-weight: bold;">用户 A</p>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-item" style="border-color: var(--accent-green);">
+                        <p style="color: var(--accent-green); font-weight: bold;">approve(B, 1000)</p>
+                        <p style="font-size: 0.8em;">授权 1000 代币</p>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="flow-item" style="border-color: var(--accent-magenta);">
+                        <p style="color: var(--accent-magenta); font-weight: bold;">transferFrom(A)</p>
+                        <p style="font-size: 0.8em;">从 A 的账户转出代币</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reveal card">
+                <h3 style="color: var(--accent-orange);">💡 为什么需要授权转账？</h3>
+                <p>在 DeFi 场景中（如交易所、借贷协议）：</p>
+                <ol style="margin-top: 0.5rem;">
+                    <li>用户授权合约可以提取自己的代币</li>
+                    <li>合约才能自动执行交易（如 swap、流动性挖矿）</li>
+                </ol>
+            </div>
+        </div>
+        <div class="slide-number">5 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 6: 发行代币流程
+         =========================================== -->
+    <section class="slide" id="slide6">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">发行代币的流程</h2>
+
+            <div class="reveal" style="margin: 2rem 0;">
+                <div class="flow">
+                    <div class="flow-item glow-box">
+                        <p><span class="highlight">1. 编写合约</span></p>
+                        <p style="font-size: 0.7em; color: var(--text-secondary);">遵循 ERC20 标准</p>
+                    </div>
+                    <span class="flow-arrow">↓</span>
+                    <div class="flow-item glow-box">
+                        <p><span class="highlight-green">2. 部署上链</span></p>
+                        <p style="font-size: 0.7em; color: var(--text-secondary);">相当于"印刷"</p>
+                    </div>
+                    <span class="flow-arrow">↓</span>
+                    <div class="flow-item glow-box">
+                        <p><span class="highlight-magenta">3. 初始分配</span></p>
+                        <p style="font-size: 0.7em; color: var(--text-secondary);">发给部署者</p>
+                    </div>
+                    <span class="flow-arrow">↓</span>
+                    <div class="flow-item glow-box">
+                        <p><span class="highlight-orange">4. 流通交易</span></p>
+                        <p style="font-size: 0.7em; color: var(--text-secondary);">授权交易所</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reveal card" style="text-align: center; margin-top: 1rem;">
+                <p style="font-size: 1.2em;"><span class="highlight">总结</span>：ERC20 就是代币的<span class="highlight">"流通规则"</span></p>
+                <p>遵守这个规则 → 代币就能被钱包识别、被交易所上架、在 DeFi 中使用</p>
+            </div>
+        </div>
+        <div class="slide-number">6 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 7: 项目目录结构
+         =========================================== -->
+    <section class="slide" id="slide7">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">项目目录结构</h2>
+
+            <div class="reveal code-block" style="font-size: 0.75em;">
+                <code>my-project/
+├── <span class="keyword">contracts/</span>          <span class="comment"># 智能合约源代码 (.sol 文件)</span>
+│   ├── ERC20Basic.sol
+│   └── MyERC20Token.sol
+│
+├── <span class="keyword">scripts/</span>            <span class="comment"># 部署脚本</span>
+│   ├── deploy.js           <span class="comment"># 部署合约</span>
+│   └── verify.js           <span class="comment"># 验证合约</span>
+│
+├── <span class="keyword">test/</span>               <span class="comment"># 测试用例</span>
+│   ├── *.test.js           <span class="comment"># 单元测试</span>
+│   └── ai-automated-test.js
+│
+├── hardhat.config.js       <span class="comment"># Hardhat 配置</span>
+├── package.json            <span class="comment"># 项目依赖</span>
+└── .gitignore              <span class="comment"># Git 忽略文件</span></code>
+            </div>
+
+            <div class="reveal card-grid" style="margin-top: 1rem;">
+                <div class="card-item" style="padding: 0.8rem;">
+                    <p style="color: var(--accent-cyan); font-weight: 600; margin: 0;">contracts/</p>
+                    <p style="font-size: 0.8em; margin: 0;">Solidity 合约源码</p>
+                </div>
+                <div class="card-item" style="padding: 0.8rem;">
+                    <p style="color: var(--accent-green); font-weight: 600; margin: 0;">scripts/</p>
+                    <p style="font-size: 0.8em; margin: 0;">部署脚本</p>
+                </div>
+                <div class="card-item" style="padding: 0.8rem;">
+                    <p style="color: var(--accent-magenta); font-weight: 600; margin: 0;">test/</p>
+                    <p style="font-size: 0.8em; margin: 0;">测试用例</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">7 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 8: 项目初始化
+         =========================================== -->
+    <section class="slide" id="slide8">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">项目初始化与安装依赖</h2>
+
+            <div class="reveal">
+                <h3 style="color: var(--accent-cyan);">📦 第一步：初始化项目</h3>
+                <div class="code-block">
+                    <code><span class="comment"># 创建项目目录</span>
+mkdir my-project
+cd my-project
+
+<span class="comment"># 初始化 npm 项目</span>
+npm init -y</code>
+                </div>
+            </div>
+
+            <div class="reveal">
+                <h3 style="color: var(--accent-green);">📦 第二步：安装依赖</h3>
+                <div class="code-block">
+                    <code><span class="comment"># 安装 Hardhat 和开发依赖</span>
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox chai
+
+<span class="comment"># 安装 OpenZeppelin 合约库</span>
+npm install @openzeppelin/contracts</code>
+                </div>
+            </div>
+
+            <div class="reveal card-grid">
+                <div class="card-item">
+                    <h3>Hardhat</h3>
+                    <p>智能合约开发框架</p>
+                </div>
+                <div class="card-item">
+                    <h3>OpenZeppelin</h3>
+                    <p>经过审计的合约库</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">8 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 9: Hardhat配置
+         =========================================== -->
+    <section class="slide" id="slide9">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">Hardhat 配置详解</h2>
+
+            <div class="reveal code-block" style="max-height: 55vh; overflow-y: auto;">
+                <code><span class="comment">// hardhat.config.js</span>
+<span class="keyword">require</span>(<span class="string">"@nomicfoundation/hardhat-toolbox"</span>);
+
+<span class="keyword">module.exports</span> = {
+  <span class="comment">// 编译器配置</span>
+  <span class="keyword">solidity</span>: {
+    <span class="string">version</span>: <span class="string">"0.8.24"</span>,
+    <span class="keyword">settings</span>: {
+      <span class="keyword">optimizer</span>: {
+        <span class="keyword">enabled</span>: <span class="keyword">true</span>,
+        <span class="string">runs</span>: <span class="number">200</span>
+      }
+    }
+  },
+
+  <span class="comment">// 网络配置</span>
+  <span class="keyword">networks</span>: {
+    <span class="comment">// Hardhat 内置网络</span>
+    <span class="keyword">hardhat</span>: {
+      <span class="string">chainId</span>: <span class="number">31337</span>,
+      <span class="keyword">accounts</span>: {
+        <span class="string">count</span>: <span class="number">10</span>,
+        <span class="string">accountsBalance</span>: <span class="string">"10000000000000000000000"</span>
+      }
+    },
+    <span class="comment">// 本地网络</span>
+    <span class="keyword">localhost</span>: {
+      <span class="string">url</span>: <span class="string">"http://127.0.0.1:8545"</span>
+    },
+    <span class="comment">// Sepolia 测试网</span>
+    <span class="keyword">sepolia</span>: {
+      <span class="string">url</span>: process.env.<span class="string">SEPOLIA_URL</span> || <span class="string">""</span>,
+      <span class="keyword">accounts</span>: process.env.<span class="string">PRIVATE_KEY</span> ? [process.env.<span class="string">PRIVATE_KEY</span>] : []
+    }
+  },
+
+  <span class="comment">// 路径配置</span>
+  <span class="keyword">paths</span>: {
+    <span class="string">sources</span>: <span class="string">"./contracts"</span>,
+    <span class="string">tests</span>: <span class="string">"./test"</span>,
+    <span class="string">cache</span>: <span class="string">"./cache"</span>,
+    <span class="string">artifacts</span>: <span class="string">"./artifacts"</span>
+  }
+};</code>
+            </div>
+        </div>
+        <div class="slide-number">9 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 10: 编写智能合约
+         =========================================== -->
+    <section class="slide" id="slide10">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">编写智能合约</h2>
+
+            <div class="reveal">
+                <h3 style="color: var(--accent-cyan);">📝 基础 ERC20 合约</h3>
+                <div class="code-block">
+                    <code><span class="comment">// SPDX-License-Identifier: MIT</span>
+<span class="keyword">pragma solidity</span> ^0.8.20;
+
+<span class="keyword">import</span> <span class="string">"@openzeppelin/contracts/token/ERC20/ERC20.sol"</span>;
+
+<span class="keyword">contract</span> <span class="function">MyToken</span> <span class="keyword">is</span> ERC20 {
+    <span class="comment">// 构造函数</span>
+    <span class="keyword">constructor</span>() ERC20(<span class="string">"MyToken"</span>, <span class="string">"MTK"</span>) {
+        <span class="comment">// 铸造初始供应量给部署者</span>
+        _mint(msg.sender, <span class="number">1000000</span> * <span class="number">10</span> ** decimals());
+    }
+}</code>
+                </div>
+            </div>
+
+            <div class="reveal card-grid">
+                <div class="card-item">
+                    <h3>name</h3>
+                    <p>代币名称</p>
+                </div>
+                <div class="card-item">
+                    <h3>symbol</h3>
+                    <p>代币符号</p>
+                </div>
+                <div class="card-item">
+                    <h3>decimals</h3>
+                    <p>小数位数（通常18）</p>
+                </div>
+                <div class="card-item">
+                    <h3>_mint()</h3>
+                    <p>铸造代币</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">10 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 11: 编写测试用例
+         =========================================== -->
+    <section class="slide" id="slide11">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">编写测试用例</h2>
+
+            <div class="reveal">
+                <h3 style="color: var(--accent-cyan);">🧪 测试框架</h3>
+                <ul>
+                    <li><span class="highlight">Hardhat</span> - 提供测试环境</li>
+                    <li><span class="highlight-magenta">Chai</span> - 断言库（expect(...).to.equal(...)）</li>
+                    <li><span class="highlight-green">Ethers.js</span> - 以太坊交互库</li>
+                </ul>
+            </div>
+
+            <div class="reveal" style="margin-top: 1rem;">
+                <h3 style="color: var(--accent-green);">📝 测试文件结构</h3>
+                <div class="code-block">
+                    <code><span class="keyword">const</span> { expect } = <span class="keyword">require</span>(<span class="string">"chai"</span>);
+<span class="keyword">const</span> { ethers } = <span class="keyword">require</span>(<span class="string">"hardhat"</span>);
+
+<span class="function">describe</span>(<span class="string">"合约名"</span>, <span class="keyword">function</span> () {
+  <span class="keyword">let</span> contract;
+  <span class="keyword">let</span> owner, addr1, addr2;
+
+  <span class="function">beforeEach</span>(<span class="keyword">async function</span> () {
+    [owner, addr1, addr2] = <span class="keyword">await</span> ethers.<span class="function">getSigners</span>();
+    <span class="keyword">const</span> Factory = <span class="keyword">await</span> ethers.<span class="function">getContractFactory</span>(<span class="string">"合约名"</span>);
+    contract = <span class="keyword">await</span> Factory.<span class="function">deploy</span>(...参数);
+    <span class="keyword">await</span> contract.<span class="function">deployed</span>();
+  });
+
+  <span class="function">describe</span>(<span class="string">"功能模块"</span>, <span class="keyword">function</span> () {
+    <span class="function">it</span>(<span class="string">"测试描述"</span>, <span class="keyword">async function</span> () {
+      <span class="comment">// 测试逻辑</span>
+      expect(结果).to.<span class="function">equal</span>(预期);
+    });
+  });
+});</code>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">11 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 12: 测试规律
+         =========================================== -->
+    <section class="slide" id="slide12">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">测试的规律</h2>
+
+            <div class="reveal card-grid">
+                <div class="card-item" style="border-color: var(--accent-green);">
+                    <h3 style="color: var(--accent-green);">✅ 正向测试</h3>
+                    <p>正常情况应该成功</p>
+                    <p style="font-size: 0.8em; margin-top: 0.5rem;">转账成功、授权成功</p>
+                </div>
+                <div class="card-item" style="border-color: var(--accent-orange);">
+                    <h3 style="color: var(--accent-orange);">❌ 负向测试</h3>
+                    <p>异常情况应该失败</p>
+                    <p style="font-size: 0.8em; margin-top: 0.5rem;">余额不足、转账给零地址</p>
+                </div>
+            </div>
+
+            <div class="reveal" style="margin-top: 1.5rem;">
+                <h3>📝 代码示例</h3>
+                <div class="code-block">
+                    <code><span class="comment">// 正向测试</span>
+<span class="function">it</span>(<span class="string">"应该允许转账代币"</span>, <span class="keyword">async function</span> () {
+  <span class="keyword">await</span> contract.<span class="function">transfer</span>(addr1.address, <span class="number">100</span>);
+  expect(<span class="keyword">await</span> contract.<span class="function">balanceOf</span>(addr1.address)).to.<span class="function">equal</span>(<span class="number">100</span>);
+});
+
+<span class="comment">// 负向测试</span>
+<span class="function">it</span>(<span class="string">"应该拒绝余额不足的转账"</span>, <span class="keyword">async function</span> () {
+  <span class="keyword">await</span> expect(
+    contract.<span class="function">transfer</span>(addr1.address, <span class="number">99999999</span>)
+  ).to.be.<span class="function">revertedWith</span>(<span class="string">"ERC20: insufficient balance"</span>);
+});</code>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">12 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 13: 部署脚本
+         =========================================== -->
+    <section class="slide" id="slide13">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">编写部署脚本</h2>
+
+            <div class="reveal code-block" style="max-height: 60vh; overflow-y: auto;">
+                <code><span class="comment">// scripts/deploy.js</span>
+<span class="keyword">const</span> hre = <span class="keyword">require</span>(<span class="string">"hardhat"</span>);
+<span class="keyword">const</span> { ethers } = <span class="keyword">require</span>(<span class="string">"hardhat"</span>);
+
+<span class="keyword">async function</span> <span class="function">main</span>() {
+  <span class="comment">// 1. 获取测试账户</span>
+  <span class="keyword">const</span> [deployer, addr1, addr2] = <span class="keyword">await</span> ethers.<span class="function">getSigners</span>();
+
+  <span class="comment">// 2. 编译合约</span>
+  <span class="keyword">await</span> hre.<span class="function">run</span>(<span class="string">"compile"</span>);
+
+  <span class="comment">// 3. 获取合约工厂并部署</span>
+  <span class="keyword">const</span> ContractFactory = <span class="keyword">await</span> ethers.<span class="function">getContractFactory</span>(<span class="string">"合约名"</span>);
+  <span class="keyword">const</span> contract = <span class="keyword">await</span> ContractFactory.<span class="function">deploy</span>(...参数);
+  <span class="keyword">await</span> contract.<span class="function">deployed</span>();
+
+  console.<span class="function">log</span>(<span class="string">"合约地址:"</span>, contract.address);
+}
+
+<span class="comment">// 执行主函数</span>
+<span class="function">main</span>()
+  .<span class="function">then</span>(() => process.<span class="function">exit</span>(<span class="number">0</span>))
+  .<span class="function">catch</span>((error) => {
+    console.<span class="function">error</span>(error);
+    process.<span class="function">exit</span>(<span class="number">1</span>);
+  });</code>
+            </div>
+        </div>
+        <div class="slide-number">13 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 14: 编译测试部署
+         =========================================== -->
+    <section class="slide" id="slide14">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">编译、测试、部署命令</h2>
+
+            <div class="reveal card-grid">
+                <div class="card-item glow-box">
+                    <h3 style="color: var(--accent-cyan);">npm run compile</h3>
+                    <p>编译合约</p>
+                </div>
+                <div class="card-item glow-box">
+                    <h3 style="color: var(--accent-green);">npm run test</h3>
+                    <p>运行测试</p>
+                </div>
+                <div class="card-item glow-box">
+                    <h3 style="color: var(--accent-magenta);">npm run node</h3>
+                    <p>启动本地节点</p>
+                </div>
+                <div class="card-item glow-box">
+                    <h3 style="color: var(--accent-orange);">npm run deploy</h3>
+                    <p>部署合约</p>
+                </div>
+            </div>
+
+            <div class="reveal" style="margin-top: 2rem;">
+                <h3>🚀 部署到测试网</h3>
+                <div class="code-block">
+                    <code><span class="comment"># 部署到 Sepolia 测试网</span>
+npm run deploy -- --network sepolia
+
+<span class="comment"># 部署到主网</span>
+npm run deploy -- --network mainnet</code>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">14 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 15: ERC20合约代码详解
+         =========================================== -->
+    <section class="slide" id="slide15">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">ERC20 核心状态变量</h2>
+
+            <div class="reveal code-block">
+                <code><span class="comment">// ERC20 标准状态变量</span>
+<span class="keyword">string public</span> name;           <span class="comment">// 代币名称</span>
+<span class="keyword">string public</span> symbol;         <span class="comment">// 代币符号</span>
+<span class="keyword">uint8 public</span> decimals;        <span class="comment">// 小数位数（通常 18）</span>
+<span class="keyword">uint256 public</span> totalSupply;   <span class="comment">// 总供应量</span>
+
+<span class="comment">// 地址 → 余额的映射</span>
+<span class="keyword">mapping</span>(<span class="keyword">address</span> => <span class="keyword">uint256</span>) <span class="keyword">public</span> balanceOf;
+
+<span class="comment">// 授权映射：owner → spender → 授权金额</span>
+<span class="keyword">mapping</span>(<span class="keyword">address</span> => <span class="keyword">mapping</span>(<span class="keyword">address</span> => <span class="keyword">uint256</span>)) <span class="keyword">public</span> allowance;</code>
+            </div>
+
+            <div class="reveal" style="margin-top: 1rem;">
+                <h3 style="color: var(--accent-cyan);">📌 核心函数</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>函数</th>
+                            <th>作用</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>transfer()</td><td>用户自己转账</td></tr>
+                        <tr><td>approve()</td><td>授权他人</td></tr>
+                        <tr><td>transferFrom()</td><td>被授权者转账</td></tr>
+                        <tr><td>increaseAllowance()</td><td>增加授权（安全）</td></tr>
+                        <tr><td>decreaseAllowance()</td><td>减少授权</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="slide-number">15 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 16: OpenZeppelin实现
+         =========================================== -->
+    <section class="slide" id="slide16">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">使用 OpenZeppelin 实现</h2>
+
+            <div class="reveal">
+                <h3 style="color: var(--accent-cyan);">📦 引入依赖</h3>
+                <div class="code-block">
+                    <code><span class="keyword">import</span> <span class="string">"@openzeppelin/contracts/token/ERC20/ERC20.sol"</span>;
+<span class="keyword">import</span> <span class="string">"@openzeppelin/contracts/access/Ownable.sol"</span>;</code>
+                </div>
+            </div>
+
+            <div class="reveal" style="margin-top: 1rem;">
+                <h3 style="color: var(--accent-green);">🔗 继承关系</h3>
+                <div class="code-block">
+                    <code>┌─────────────────┐
+│  Ownable        │  ← 权限管理
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  ERC20          │  ← 代币标准
+└────────┬────────┘
+         │
+┌────────▼────────┐
+│  MyERC20Token  │  ← 你的代币
+└─────────────────┘</code>
+                </div>
+            </div>
+
+            <div class="reveal" style="margin-top: 1rem;">
+                <h3 style="color: var(--accent-magenta);">✨ 自定义功能</h3>
+                <ul>
+                    <li><span class="highlight">mint()</span> - 铸造新代币（仅 owner）</li>
+                    <li><span class="highlight-green">burn()</span> - 销毁自己的代币</li>
+                    <li><span class="highlight-orange">finishMinting()</span> - 结束铸造</li>
+                </ul>
+            </div>
+        </div>
+        <div class="slide-number">16 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 17: _mint和_burn来源
+         =========================================== -->
+    <section class="slide" id="slide17">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">_mint() 和 _burn() 的来源</h2>
+
+            <div class="reveal card" style="text-align: center;">
+                <p style="font-size: 1.2em;">这两个方法定义在 <span class="highlight">OpenZeppelin 的 ERC20.sol</span> 中</p>
+                <p>通过 <span class="highlight-magenta">import</span> 和 <span class="highlight-green">继承</span> 引入</p>
+            </div>
+
+            <div class="reveal code-block" style="margin-top: 1.5rem;">
+                <code><span class="comment">// OpenZeppelin ERC20.sol 中的实现（简化）</span>
+<span class="keyword">function</span> <span class="function">_mint</span>(<span class="keyword">address</span> account, <span class="keyword">uint256</span> amount) <span class="keyword">internal</span> {
+    <span class="function">require</span>(account != <span class="keyword">address</span>(<span class="number">0</span>), <span class="string">"mint to zero address"</span>);
+    _totalSupply += amount;
+    _balances[account] += amount;
+    <span class="keyword">emit</span> <span class="function">Transfer</span>(<span class="keyword">address</span>(<span class="number">0</span>), account, amount);
+}
+
+<span class="comment">// 公开接口 mint() 内部调用 _mint()</span>
+<span class="keyword">function</span> <span class="function">mint</span>(<span class="keyword">address</span> to, <span class="keyword">uint256</span> amount) <span class="keyword">public</span> <span class="keyword">onlyOwner</span> {
+    _mint(to, amount);  <span class="comment">// 调用内部实现</span>
+}</code>
+            </div>
+
+            <div class="reveal card-grid" style="margin-top: 1rem;">
+                <div class="card-item">
+                    <p><span class="highlight">mint()</span></p>
+                    <p style="font-size: 0.8em;">public 公开接口</p>
+                </div>
+                <div class="card-item">
+                    <p><span class="highlight-magenta">_mint()</span></p>
+                    <p style="font-size: 0.8em;">internal 内部实现</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">17 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 18: 手写vs OpenZeppelin
+         =========================================== -->
+    <section class="slide" id="slide18">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">手写 vs OpenZeppelin 对比</h2>
+
+            <div class="reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>特性</th>
+                            <th>手写 ERC20</th>
+                            <th>OpenZeppelin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>安全性</td><td style="color: var(--accent-orange);">需自己处理</td><td style="color: var(--accent-green);">经过审计，更安全</td></tr>
+                        <tr><td>代码量</td><td>较多</td><td>较少</td></tr>
+                        <tr><td>继承</td><td>无</td><td>ERC20, Ownable</td></tr>
+                        <tr><td>铸造功能</td><td style="color: var(--accent-orange);">无</td><td style="color: var(--accent-green);">有 mint()</td></tr>
+                        <tr><td>销毁功能</td><td style="color: var(--accent-orange);">无</td><td style="color: var(--accent-green);">有 burn()</td></tr>
+                        <tr><td>权限控制</td><td style="color: var(--accent-orange);">无</td><td style="color: var(--accent-green);">有 onlyOwner</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="reveal card glow-box" style="text-align: center; margin-top: 1.5rem;">
+                <p style="font-size: 1.3em;"><span class="highlight">核心优势</span></p>
+                <p>使用 OpenZeppelin = 用经过审计的安全代码</p>
+            </div>
+        </div>
+        <div class="slide-number">18 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 19: 常用工具函数
+         =========================================== -->
+    <section class="slide" id="slide19">
+        <div class="grid-bg"></div>
+        <div class="slide-content">
+            <h2 class="reveal">附录：常用工具函数</h2>
+
+            <div class="reveal card-grid">
+                <div class="card-item">
+                    <h3 style="color: var(--accent-cyan);">ethers.utils.parseEther("1")</h3>
+                    <p>ETH → Wei（乘 10^18）</p>
+                </div>
+                <div class="card-item">
+                    <h3 style="color: var(--accent-green);">ethers.utils.formatEther(wei)</h3>
+                    <p>Wei → ETH（除 10^18）</p>
+                </div>
+                <div class="card-item">
+                    <h3 style="color: var(--accent-magenta);">ethers.constants.AddressZero</h3>
+                    <p>零地址</p>
+                </div>
+                <div class="card-item">
+                    <h3 style="color: var(--accent-orange);">contract.connect(account)</h3>
+                    <p>以另一账户身份调用</p>
+                </div>
+            </div>
+
+            <div class="reveal" style="margin-top: 2rem;">
+                <h3>📦 package.json 关键字段</h3>
+                <div class="code-block">
+                    <code>{
+  <span class="string">"scripts"</span>: {
+    <span class="string">"compile"</span>: <span class="string">"hardhat compile"</span>,
+    <span class="string">"test"</span>: <span class="string">"hardhat test"</span>,
+    <span class="string">"deploy"</span>: <span class="string">"hardhat run scripts/deploy.js --network localhost"</span>
+  },
+  <span class="string">"dependencies"</span>: {
+    <span class="string">"@openzeppelin/contracts"</span>: <span class="string">"^5.0.0"</span>
+  }
+}</code>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">19 / 20</div>
+    </section>
+
+    <!-- ===========================================
+         幻灯片 20: 总结
+         =========================================== -->
+    <section class="slide" id="slide20">
+        <div class="grid-bg"></div>
+        <div class="slide-content" style="text-align: center;">
+            <h2 class="reveal" style="justify-content: center;">学习路径总结</h2>
+
+            <div class="reveal" style="margin: 2rem 0;">
+                <div class="flow" style="flex-direction: column;">
+                    <div class="flow-item glow-box" style="width: 300px;">
+                        <p><span class="highlight">1. 理解 ERC20 是什么</span></p>
+                        <p style="font-size: 0.7em; color: var(--text-secondary);">代币标准，让所有代币互相兼容</p>
+                    </div>
+                    <span class="flow-arrow" style="transform: rotate(90deg);">↓</span>
+                    <div class="flow-item glow-box" style="width: 300px;">
+                        <p><span class="highlight-green">2. 搭建开发环境</span></p>
+                        <p style="font-size: 0.7em; color: var(--text-secondary);">Hardhat + OpenZeppelin</p>
+                    </div>
+                    <span class="flow-arrow" style="transform: rotate(90deg);">↓</span>
+                    <div class="flow-item glow-box" style="width: 300px;">
+                        <p><span class="highlight-magenta">3. 编写智能合约</span></p>
+                        <p style="font-size: 0.7em; color: var(--text-secondary);">手写实现 vs 使用库</p>
+                    </div>
+                    <span class="flow-arrow" style="transform: rotate(90deg);">↓</span>
+                    <div class="flow-item glow-box" style="width: 300px;">
+                        <p><span class="highlight-orange">4. 编写测试</span></p>
+                        <p style="font-size: 0.7em; color: var(--text-secondary);">正向 + 负向测试</p>
+                    </div>
+                    <span class="flow-arrow" style="transform: rotate(90deg);">↓</span>
+                    <div class="flow-item glow-box" style="width: 300px;">
+                        <p><span class="highlight">5. 部署上线</span></p>
+                        <p style="font-size: 0.7em; color: var(--text-secondary);">本地网络 → 测试网 → 主网</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="reveal glow-box" style="padding: 2rem; border-radius: 20px; margin-top: 1rem;">
+                <p style="font-size: 1.5em; color: var(--accent-cyan);">🎉 Day 15 学习完成！</p>
+                <p style="margin-top: 1rem;">祝你在 ERC20 开发中取得成功</p>
+            </div>
+        </div>
+        <div class="slide-number">20 / 20</div>
+    </section>
+
+    <script>
+        // ===========================================
+        // 幻灯片控制器
+        // ===========================================
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.totalSlides = this.slides.length;
+                this.currentSlide = 0;
+
+                this.init();
+            }
+
+            init() {
+                // 创建导航点
+                this.createNavDots();
+
+                // 监听滚动
+                this.setupScrollObserver();
+
+                // 键盘导航
+                this.setupKeyboardNav();
+
+                // 触摸滑动
+                this.setupTouchNav();
+
+                // 更新进度条
+                this.updateProgress();
+
+                // 初始显示第一张
+                this.slides[0].classList.add('visible');
+                this.updateNavDots();
+            }
+
+            // 创建导航点
+            createNavDots() {
+                const navDots = document.getElementById('navDots');
+                for (let i = 0; i < this.totalSlides; i++) {
+                    const dot = document.createElement('div');
+                    dot.classList.add('nav-dot');
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    navDots.appendChild(dot);
+                }
+            }
+
+            // 滚动观察器
+            setupScrollObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const slideIndex = Array.from(this.slides).indexOf(entry.target);
+                            this.currentSlide = slideIndex;
+                            entry.target.classList.add('visible');
+                            this.updateNavDots();
+                            this.updateProgress();
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            // 键盘导航
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowRight' || e.key === ' ') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+            }
+
+            // 触摸滑动
+            setupTouchNav() {
+                let touchStartY = 0;
+                let touchEndY = 0;
+
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.changedTouches[0].screenY;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    touchEndY = e.changedTouches[0].screenY;
+                    const diff = touchStartY - touchEndY;
+
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }
+                }, { passive: true });
+            }
+
+            // 跳转到指定幻灯片
+            goToSlide(index) {
+                if (index >= 0 && index < this.totalSlides) {
+                    this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            // 下一张
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            // 上一张
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            // 更新导航点
+            updateNavDots() {
+                const dots = document.querySelectorAll('.nav-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentSlide);
+                });
+            }
+
+            // 更新进度条
+            updateProgress() {
+                const progress = ((this.currentSlide + 1) / this.totalSlides) * 100;
+                document.getElementById('progressBar').style.width = progress + '%';
+            }
+        }
+
+        // 初始化
+        new SlidePresentation();
+    </script>
+</body>
+</html>

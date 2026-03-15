@@ -1,0 +1,36 @@
+{
+  "name": "solidity-day23-erc20-token",
+  "version": "1.0.0",
+  "description": "Day 23 - DeFi 开发实战：ERC20 代币标准详解",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:ai": "node test/ai-automated-test.js",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "verify": "hardhat run scripts/verify.js --network localhost",
+    "node": "hardhat node",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "web3",
+    "blockchain",
+    "erc20",
+    "token",
+    "defi",
+    "openzeppelin"
+  ],
+  "author": "ethan",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "chai": "^4.5.0",
+    "hardhat": "^2.28.6"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1"
+  }
+}
