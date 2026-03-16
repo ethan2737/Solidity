@@ -1,0 +1,1094 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Day16：AMM 与 x·y=k 恒定乘积模型</title>
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700&display=swap">
+    <style>
+        :root {
+            --bg-primary: #0a0f1c;
+            --bg-secondary: #111827;
+            --bg-tertiary: #1a2332;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent: #00f5ff;
+            --accent-secondary: #8b5cf6;
+            --accent-glow: rgba(0, 245, 255, 0.3);
+            --accent-purple: rgba(139, 92, 246, 0.3);
+            --border: rgba(0, 245, 255, 0.2);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --font-display: 'Clash Display', sans-serif;
+            --font-body: 'Satoshi', sans-serif;
+            --title-size: clamp(2rem, 5vw, 4rem);
+            --h2-size: clamp(1.5rem, 3vw, 2.5rem);
+            --h3-size: clamp(1.1rem, 2vw, 1.5rem);
+            --body-size: clamp(0.8rem, 1.2vw, 1rem);
+            --code-size: clamp(0.65rem, 1vw, 0.85rem);
+            --slide-padding: clamp(1.5rem, 4vw, 4rem);
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+        }
+
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .slide-content > * {
+            text-align: center;
+        }
+
+        .gradient-bg {
+            background:
+                radial-gradient(ellipse at 20% 80%, var(--accent-glow) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, var(--accent-purple) 0%, transparent 50%),
+                var(--bg-primary);
+        }
+
+        .grid-bg {
+            background-image:
+                linear-gradient(rgba(0, 245, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 245, 255, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s var(--ease-out-expo), transform 0.6s var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .reveal:nth-child(5) { transition-delay: 0.5s; }
+        .reveal:nth-child(6) { transition-delay: 0.6s; }
+
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 1rem;
+        }
+
+        p {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.6;
+            text-align: center;
+            max-width: 900px;
+            margin: 0 auto 1rem;
+        }
+
+        .highlight {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .highlight-purple {
+            color: var(--accent-secondary);
+            font-weight: 600;
+        }
+
+        .highlight-green {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .highlight-warning {
+            color: var(--warning);
+            font-weight: 600;
+        }
+
+        .big-text {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 700;
+            font-family: var(--font-display);
+        }
+
+        .subtitle {
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: var(--text-secondary);
+            text-align: center;
+        }
+
+        .bullet-list {
+            list-style: none;
+            text-align: left;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .bullet-list li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            margin-bottom: 0.8rem;
+            padding-left: 1.5rem;
+            position: relative;
+            text-align: left;
+        }
+
+        .bullet-list li::before {
+            content: '▸';
+            color: var(--accent);
+            position: absolute;
+            left: 0;
+        }
+
+        .code-block {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem 1.5rem;
+            text-align: left;
+            overflow-x: auto;
+            max-width: 90vw;
+            margin: 1rem auto;
+        }
+
+        .code-block code {
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: var(--code-size);
+            color: var(--text-primary);
+            white-space: pre;
+            display: block;
+            text-align: left;
+        }
+
+        .code-block .comment {
+            color: var(--text-muted);
+        }
+
+        .code-block .keyword {
+            color: var(--accent-secondary);
+        }
+
+        .code-block .function {
+            color: var(--accent);
+        }
+
+        .code-block .string {
+            color: var(--success);
+        }
+
+        .code-block .number {
+            color: var(--warning);
+        }
+
+        .formula {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: clamp(1rem, 2vw, 1.5rem);
+            color: var(--accent);
+            background: var(--bg-tertiary);
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            display: inline-block;
+            margin: 1rem 0;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(280px, 90vw), 1fr));
+            gap: 1.5rem;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: left;
+            transition: transform 0.3s var(--ease-out-expo), box-shadow 0.3s var(--ease-out-expo);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px var(--accent-glow);
+        }
+
+        .card h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            text-align: left;
+        }
+
+        .card p {
+            font-size: 0.85rem;
+            text-align: left;
+            margin: 0;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: left;
+        }
+
+        .two-col > div {
+            text-align: left;
+        }
+
+        .two-col p, .two-col li {
+            text-align: left;
+        }
+
+        .table-container {
+            max-width: 900px;
+            margin: 0 auto;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--body-size);
+        }
+
+        th, td {
+            padding: 0.8rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: var(--accent);
+            font-weight: 600;
+            background: var(--bg-secondary);
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--accent), var(--accent-secondary));
+            z-index: 100;
+            transition: width 0.3s;
+        }
+
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .slide-number {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .accent-box {
+            background: linear-gradient(135deg, var(--accent-glow), var(--accent-purple));
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            max-width: 800px;
+            margin: 1rem auto;
+        }
+
+        .accent-box p {
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        @media (max-width: 768px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+            .card-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: 1rem;
+            }
+            h1 { margin-bottom: 0.5rem; }
+            p { margin-bottom: 0.5rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                transition: opacity 0.3s;
+                transform: none;
+            }
+            .slide.visible .reveal {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- Slide 1: Title -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h1 class="reveal">Day 16</h1>
+            <p class="subtitle reveal" style="font-size: clamp(1.5rem, 3vw, 2rem); color: var(--text-primary); margin-bottom: 2rem;">AMM 与 x·y=k 恒定乘积模型</p>
+            <p class="reveal">自动做市商 | 流动性池 | 代币交换</p>
+            <p class="reveal" style="margin-top: 2rem; font-size: 0.9rem;">基于本项目合约提炼的知识点</p>
+        </div>
+        <div class="slide-number">1</div>
+    </section>
+
+    <!-- Slide 2: 什么是 AMM -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">什么是 AMM？</h2>
+            <p class="reveal" style="font-size: clamp(1.1rem, 1.8vw, 1.3rem); color: var(--text-primary);">
+                <span class="highlight">自动做市商（AMM）</span>：用数学公式和池子里的储备量<br>自动给出买卖价格，无需传统订单簿和做市商报价
+            </p>
+            <div class="accent-box reveal">
+                <p><strong>类比：</strong>像一个<span class="highlight">自动售货机</span>——你投进去的是代币A，机器按内部规则吐出代币B。规则写死在合约里，不需要有人在场报价。</p>
+            </div>
+            <ul class="bullet-list reveal">
+                <li><strong>传统交易所</strong>：订单簿 + 撮合。有人挂卖单、有人挂买单，交易所撮合成交</li>
+                <li><strong>AMM</strong>：没有挂单。有一个<span class="highlight">流动性池</span>，里面存着两种代币</li>
+            </ul>
+        </div>
+        <div class="slide-number">2</div>
+    </section>
+
+    <!-- Slide 3: x·y=k 恒定乘积模型 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">x·y=k 恒定乘积模型</h2>
+            <p class="reveal">池子里两种代币的数量（x 和 y）的乘积始终等于常数 k</p>
+            <div class="formula reveal">
+                amountOut = reserveOut × amountIn / (reserveIn + amountIn)
+            </div>
+            <div class="two-col reveal">
+                <div>
+                    <h3>公式推导</h3>
+                    <ul class="bullet-list">
+                        <li>设池子里有 x 个 A、y 个 B</li>
+                        <li>用户投入 Δx 个 A，要拿走 Δy 个 B</li>
+                        <li>交换后：(x+Δx)(y−Δy) = k</li>
+                        <li>解得：Δy = y·Δx / (x+Δx)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>类比</h3>
+                    <div class="accent-box">
+                        <p>像<span class="highlight">跷跷板</span>：一边加重（投入 A），另一边就必须减少（取出 B），且"重量×距离"的乘积保持不变</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">3</div>
+    </section>
+
+    <!-- Slide 4: 核心代码 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">x·y=k 核心代码</h2>
+            <div class="code-block reveal">
+                <code><span class="comment">// 仅演示 x·y=k 的输入输出计算（view，不改变状态）</span>
+<span class="keyword">function</span> <span class="function">getAmountOut</span>(
+    <span class="keyword">uint256</span> reserveIn,
+    <span class="keyword">uint256</span> reserveOut,
+    <span class="keyword">uint256</span> amountIn
+) <span class="keyword">public pure returns</span> (<span class="keyword">uint256</span> amountOut) {
+    <span class="comment">// 恒定乘积：(reserveIn + amountIn) * (reserveOut - amountOut) = reserveIn * reserveOut</span>
+    <span class="comment">// 解得：amountOut = reserveOut * amountIn / (reserveIn + amountIn)</span>
+    <span class="function">require</span>(reserveIn > <span class="number">0</span> && reserveOut > <span class="number">0</span>, <span class="string">"no liquidity"</span>);
+    amountOut = (reserveOut * amountIn) / (reserveIn + amountIn);
+    <span class="keyword">return</span> amountOut;
+}</code>
+            </div>
+            <p class="reveal" style="font-size: 0.9rem;"><span class="highlight">最佳实践：</span>先乘后除，避免先除再乘导致精度丢失</p>
+        </div>
+        <div class="slide-number">4</div>
+    </section>
+
+    <!-- Slide 5: 添加流动性 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">添加流动性（Add Liquidity）</h2>
+            <p class="reveal">用户把两种代币按约定比例存入 AMM 池子，获得<span class="highlight">流动性份额</span>（LP 代币）</p>
+            <div class="two-col reveal">
+                <div>
+                    <h3>首次添加</h3>
+                    <ul class="bullet-list">
+                        <li>池子为空，可任意定初始比例</li>
+                        <li>LP 数量 = √(amountA×amountB) − 最小流动性</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>后续添加</h3>
+                    <ul class="bullet-list">
+                        <li>必须<span class="highlight">按当前池子比例</span></li>
+                        <li>amountA/amountB = reserveA/reserveB</li>
+                        <li>LP = (amountA × totalSupply) / reserveA</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="formula reveal" style="font-size: clamp(0.9rem, 1.5vw, 1.2rem);">
+                LP = (amountA × totalSupply) / reserveA
+            </div>
+        </div>
+        <div class="slide-number">5</div>
+    </section>
+
+    <!-- Slide 6: 移除流动性 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">移除流动性（Remove Liquidity）</h2>
+            <p class="reveal">用户销毁一定数量的 LP 代币，按当前池子比例取回两种代币</p>
+            <div class="formula reveal">
+                amountA = liquidity × reserveA / totalSupply<br>
+                amountB = liquidity × reserveB / totalSupply
+            </div>
+            <div class="two-col reveal">
+                <div class="code-block">
+                    <code><span class="keyword">function</span> <span class="function">removeLiquidity</span>(<span class="keyword">uint256</span> _liquidity)
+    <span class="keyword">external returns</span> (<span class="keyword">uint256</span> amountA, <span class="keyword">uint256</span> amountB) {
+    <span class="comment">// 按份额比例计算可取回的数量</span>
+    amountA = (_liquidity * reserveA) / totalSupply;
+    amountB = (_liquidity * reserveB) / totalSupply;
+    <span class="function">require</span>(amountA > <span class="number">0</span> && amountB > <span class="number">0</span>, <span class="string">"Insufficient amounts"</span>);
+
+    <span class="comment">// CEI：先更新状态，再转币</span>
+    _<span class="function">burn</span>(msg.sender, _liquidity);
+    reserveA -= amountA;
+    reserveB -= amountB;
+
+    IERC20(tokenA).<span class="function">transfer</span>(msg.sender, amountA);
+    IERC20(tokenB).<span class="function">transfer</span>(msg.sender, amountB);
+    <span class="keyword">return</span> (amountA, amountB);
+}</code>
+                </div>
+                <div>
+                    <h3>关键点</h3>
+                    <ul class="bullet-list">
+                        <li>LP 代表<span class="highlight">池子份额</span></li>
+                        <li>按比例取回，不改变剩余储备<span class="highlight">比例</span></li>
+                        <li>使用 <span class="highlight">CEI 模式</span>避免重入</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">6</div>
+    </section>
+
+    <!-- Slide 7: LP 代币 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">LP 代币（流动性凭证）</h2>
+            <p class="reveal">代表你在该流动性池里所占的<span class="highlight">份额</span></p>
+            <div class="card-grid reveal">
+                <div class="card">
+                    <h3>添加流动性</h3>
+                    <p>合约 <span class="highlight">_mint</span>(msg.sender, liquidity) 铸造 LP 给用户</p>
+                </div>
+                <div class="card">
+                    <h3>移除流动性</h3>
+                    <p>合约 <span class="highlight">_burn</span>(msg.sender, liquidity) 销毁用户的 LP</p>
+                </div>
+                <div class="card">
+                    <h3>赎回比例</h3>
+                    <p>按 LP 占<span class="highlight">总供应量的比例</span>取回双币</p>
+                </div>
+                <div class="card">
+                    <h3>最小流动性</h3>
+                    <p>首次铸造减掉 MINIMUM_LIQUIDITY 锁到 address(0)，避免除零</p>
+                </div>
+            </div>
+            <div class="code-block reveal" style="max-width: 500px;">
+                <code><span class="comment">// 最简 LP 记账</span>
+<span class="keyword">uint256</span> <span class="keyword">public</span> totalSupply;
+mapping(<span class="keyword">address</span> => <span class="keyword">uint256</span>) <span class="keyword">public</span> balanceOf;
+
+<span class="keyword">function</span> <span class="function">_mint</span>(<span class="keyword">address</span> to, <span class="keyword">uint256</span> amount) <span class="keyword">internal</span> {
+    totalSupply += amount;
+    balanceOf[to] += amount;
+    <span class="function">emit</span> Transfer(<span class="keyword">address</span>(<span class="number">0</span>), to, amount);
+}</code>
+            </div>
+        </div>
+        <div class="slide-number">7</div>
+    </section>
+
+    <!-- Slide 8: 代币交换 Swap -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">代币交换（Swap）</h2>
+            <p class="reveal">用户把一种代币转入池子，合约按 x·y=k 算出另一种代币的数量并转给用户</p>
+            <div class="code-block reveal">
+                <code><span class="comment">// 实际交换：转入 tokenIn，更新储备，转出 tokenOut</span>
+<span class="keyword">function</span> <span class="function">swap</span>(<span class="keyword">address</span> _tokenIn, <span class="keyword">uint256</span> _amountIn)
+    <span class="keyword">external returns</span> (<span class="keyword">uint256</span> amountOut) {
+    (<span class="keyword">uint256</span> rIn, <span class="keyword">uint256</span> rOut) = _tokenIn == tokenA
+        ? (reserveA, reserveB) : (reserveB, reserveA);
+
+    amountOut = (rOut * _amountIn) / (rIn + _amountIn);
+    <span class="function">require</span>(amountOut > <span class="number">0</span>, <span class="string">"Bad amount"</span>);
+
+    <span class="comment">// 先转进，再更新储备，最后转出</span>
+    IERC20(_tokenIn).<span class="function">transferFrom</span>(msg.sender, <span class="keyword">address</span>(<span class="keyword">this</span>), _amountIn);
+    <span class="keyword">if</span> (_tokenIn == tokenA) {
+        reserveA += _amountIn;
+        reserveB -= amountOut;
+        IERC20(tokenB).<span class="function">transfer</span>(msg.sender, amountOut);
+    } <span class="keyword">else</span> {
+        reserveB += _amountIn;
+        reserveA -= amountOut;
+        IERC20(tokenA).<span class="function">transfer</span>(msg.sender, amountOut);
+    }
+    <span class="keyword">return</span> amountOut;
+}</code>
+            </div>
+        </div>
+        <div class="slide-number">8</div>
+    </section>
+
+    <!-- Slide 9: 滑点保护 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">滑点（Slippage）与最小输出</h2>
+            <p class="reveal">从发起交易到上链之间，池子可能被其他交易改变，导致实际得到的 amountOut 小于预期</p>
+            <div class="two-col reveal">
+                <div>
+                    <h3>什么是滑点？</h3>
+                    <div class="accent-box">
+                        <p>你调用 getAmountOut 时得到 100 个 B；在交易之前，有人先换走了大量 B，池子比例变了，你实际可能只换到 95 个 B。<span class="highlight-warning">这 5% 的偏差就是滑点</span>。</p>
+                    </div>
+                </div>
+                <div>
+                    <h3>三明治攻击</h3>
+                    <div class="accent-box">
+                        <p>有人监控到你的交易还没执行，<span class="highlight-purple">先</span>用大单买 B → <span class="highlight-purple">你的</span>交易在更贵价格执行 → <span class="highlight-purple">他再</span>卖 B 赚差价。你的单子被<span class="highlight-warning">夹在中间</span>。</p>
+                    </div>
+                </div>
+            </div>
+            <div class="code-block reveal" style="max-width: 600px;">
+                <code><span class="comment">// 带滑点保护的 swap</span>
+<span class="keyword">function</span> <span class="function">swap</span>(
+    <span class="keyword">address</span> _tokenIn,
+    <span class="keyword">uint256</span> _amountIn,
+    <span class="keyword">uint256</span> minAmountOut  <span class="comment">// 最少要拿到多少</span>
+) <span class="keyword">external returns</span> (<span class="keyword">uint256</span> amountOut) {
+    amountOut = (reserveOut * _amountIn) / (reserveIn + _amountIn);
+    <span class="function">require</span>(amountOut >= minAmountOut, <span class="string">"Slippage too high"</span>);
+    <span class="comment">// 再执行转入、更新储备、转出...</span>
+}</code>
+            </div>
+        </div>
+        <div class="slide-number">9</div>
+    </section>
+
+    <!-- Slide 10: Approve 与 TransferFrom -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">ERC20 的 Approve 与 TransferFrom</h2>
+            <p class="reveal">AMM 需要把用户的代币从用户地址转到池子</p>
+            <div class="two-col reveal">
+                <div>
+                    <h3>用户操作</h3>
+                    <ul class="bullet-list">
+                        <li><span class="highlight">approve</span>(spender, amount)：允许 spender 代表你转账</li>
+                        <li>用户必须先对 AMM 合约 approve</li>
+                        <li>添加流动性：approve tokenA 和 tokenB</li>
+                        <li>交换：approve tokenIn</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>AMM 内部操作</h3>
+                    <ul class="bullet-list">
+                        <li><span class="highlight">transferFrom</span>(from, to, amount)</li>
+                        <li>从 from 转 amount 到 to</li>
+                        <li>前提：allowance[from][spender] ≥ amount</li>
+                        <li>调用：IERC20(token).transferFrom(msg.sender, address(this), amount)</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="formula reveal">
+                <span class="highlight">类比：</span>你把钱包交给朋友（AMM）代付，需要先说"最多可以花 100 块"（approve）
+            </div>
+        </div>
+        <div class="slide-number">10</div>
+    </section>
+
+    <!-- Slide 11: 整数运算与防除零 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">整数运算与最小流动性</h2>
+            <div class="two-col reveal">
+                <div>
+                    <h3>除零问题</h3>
+                    <ul class="bullet-list">
+                        <li>totalSupply 或 reserve 为 0 时，除法会 revert</li>
+                        <li>Uniswap 用<span class="highlight">最小流动性</span>解决</li>
+                        <li>首次铸造时把少量 LP（如 10^3）铸给 address(0)</li>
+                        <li>使 totalSupply 永远 ≥ MINIMUM_LIQUIDITY</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>舍入问题</h3>
+                    <ul class="bullet-list">
+                        <li>Solidity 只有整数运算，<span class="highlight-warning">向下取整</span></li>
+                        <li>实际 amountOut 略少</li>
+                        <li>k 略增，对 LP 有利</li>
+                        <li>设计上可接受</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="code-block reveal" style="max-width: 500px;">
+                <code><span class="keyword">uint256</span> <span class="keyword">public constant</span> MINIMUM_LIQUIDITY = <span class="number">10**3</span>;
+
+<span class="comment">// 首次添加：扣掉最小流动性并锁到 0 地址</span>
+<span class="keyword">if</span> (reserveA == <span class="number">0</span> && reserveB == <span class="number">0</span>) {
+    liquidity = <span class="function">sqrt</span>(_amountA * _amountB) - MINIMUM_LIQUIDITY;
+    _<span class="function">mint</span>(<span class="keyword">address</span>(<span class="number">0</span>), MINIMUM_LIQUIDITY);
+}</code>
+            </div>
+        </div>
+        <div class="slide-number">11</div>
+    </section>
+
+    <!-- Slide 12: 安全与校验 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">安全与校验</h2>
+            <div class="card-grid reveal">
+                <div class="card">
+                    <h3>CEI 模式</h3>
+                    <p><span class="highlight">Checks-Effects-Interactions</span>：先做所有检查和状态更新，最后再做外部调用。防止重入攻击。</p>
+                </div>
+                <div class="card">
+                    <h3>参数校验</h3>
+                    <p>token 地址非零、两 token 不同、amount > 0、reserve 充足、amountOut < reserveOut 等</p>
+                </div>
+                <div class="card">
+                    <h3>事件完整性</h3>
+                    <p>LiquidityAdded、LiquidityRemoved、Swap 等要发全参数，便于链下索引和审计</p>
+                </div>
+                <div class="card">
+                    <h3>最佳实践</h3>
+                    <p>构造函数中：require(_tokenA != address(0) && _tokenB != address(0) && _tokenA != _tokenB)</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">12</div>
+    </section>
+
+    <!-- Slide 13: 故事 - 老集市 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">小镇的换货站：故事开始</h2>
+            <h3 class="reveal" style="color: var(--accent-secondary);">一、老集市：订单簿与做市商</h3>
+            <div class="accent-box reveal">
+                <p>小镇以前只有<span class="highlight">老集市</span>。想卖苹果的人在一块大木板上写「我卖 10 斤苹果，5 元一斤」；想买的人写「我买 5 斤苹果，4 元一斤」。管理员把<span class="highlight">买和卖一对一对配起来</span>，配上了就成交。</p>
+            </div>
+            <ul class="bullet-list reveal">
+                <li>那块木板就是<span class="highlight">订单簿</span></li>
+                <li>写上去的每一句就是<span class="highlight">挂单</span></li>
+                <li>有些摊主主动写「我 4.5 元收、5.5 元卖」，就是在<span class="highlight-purple">做市</span></li>
+                <li>这些摊主就是<span class="highlight-purple">做市商</span></li>
+            </ul>
+        </div>
+        <div class="slide-number">13</div>
+    </section>
+
+    <!-- Slide 14: 故事 - 新式换货站 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">小镇的换货站</h2>
+            <h3 class="reveal" style="color: var(--accent-secondary);">二、新式换货站：AMM 与流动性池</h3>
+            <div class="accent-box reveal">
+                <p>后来镇里开了<span class="highlight">新式换货站</span>。门口只有两个大桶：一个装苹果（ETH）、一个装橙子（USDT），桶旁边贴着一张纸，写着一道规则：「<span class="highlight-warning">两桶里的数量乘起来，永远等于同一个数 k</span>。」</p>
+            </div>
+            <ul class="bullet-list reveal">
+                <li>没有人再在木板上写买价卖价了</li>
+                <li>想换的人把一种水果倒进对应桶里，按规则从另一个桶里取出水果</li>
+                <li>这个换货站就是<span class="highlight">自动做市商 AMM</span></li>
+                <li>两个桶里已经装着的数量就是<span class="highlight">储备量</span></li>
+                <li>桶越满，流动性越好</li>
+            </ul>
+        </div>
+        <div class="slide-number">14</div>
+    </section>
+
+    <!-- Slide 15: 故事 - 添加流动性 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">小镇的换货站</h2>
+            <h3 class="reveal" style="color: var(--accent-secondary);">四、添加流动性与 LP 代币</h3>
+            <div class="accent-box reveal">
+                <p>开张第一天，小明和小红各往两个桶里倒了一批苹果和橙子。站员按规则算了一下，给小明和小红发了<span class="highlight">小票</span>，上面写着「凭此票可按比例从桶里取回苹果和橙子」。</p>
+            </div>
+            <ul class="bullet-list reveal">
+                <li>这些小票就是<span class="highlight">LP 代币</span></li>
+                <li>代表你在<span class="highlight">流动性池</span>里占的<span class="highlight">份额</span></li>
+                <li>以后谁再来补货或有人来换货，桶里的数量和总小票数会变</li>
+                <li>你手里的票数不变，但你<span class="highlight-purple">占总票数的比例</span>决定了你以后能取回多少</li>
+                <li>往桶里补货的过程，就是<span class="highlight-purple">添加流动性</span></li>
+            </ul>
+        </div>
+        <div class="slide-number">15</div>
+    </section>
+
+    <!-- Slide 16: 故事 - 交换与滑点 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">小镇的换货站</h2>
+            <h3 class="reveal" style="color: var(--accent-secondary);">五、交换：公式与滑点</h3>
+            <div class="accent-box reveal">
+                <p>小刚想用苹果换橙子。站员算出来：「能拿 <span class="highlight">8 斤橙子</span>。」那条规则就是：</p>
+                <p style="color: var(--accent); margin-top: 0.5rem;">amountOut = 橙子桶数量 × 苹果数量 ÷ (苹果桶数量 + 苹果数量)</p>
+            </div>
+            <div class="two-col reveal">
+                <div>
+                    <h3>滑点</h3>
+                    <div class="accent-box">
+                        <p>小刚发现实际只拿到了 <span class="highlight-warning">7.5 斤</span>，比问的 8 斤少——这中间的差距就是<span class="highlight-warning">滑点</span>。</p>
+                    </div>
+                </div>
+                <div>
+                    <h3>三明治攻击</h3>
+                    <div class="accent-box">
+                        <p>有人<span class="highlight-purple">先</span>冲进去大量用苹果换橙子 → 小刚的交易在<span class="highlight-purple">更差汇率</span>执行 → 这人<span class="highlight-purple">再</span>把橙子换回苹果赚差价。</p>
+                    </div>
+                </div>
+            </div>
+            <p class="reveal">后来换货站规定：可以说「我至少要拿到 X 斤，否则作废」——这个"至少 X 斤"就是<span class="highlight">minAmountOut</span></p>
+        </div>
+        <div class="slide-number">16</div>
+    </section>
+
+    <!-- Slide 17: 故事 - 移除流动性 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">小镇的换货站</h2>
+            <h3 class="reveal" style="color: var(--accent-secondary);">六、移除流动性：可能多，也可能少</h3>
+            <div class="accent-box reveal">
+                <p>小明不想再参与这个站了，就拿出手里的小票到换货站说「我要赎回」。站员按<span class="highlight">小票占总票数的比例</span>，从两个桶里分别舀出对应数量的水果还给他，同时把小票撕掉。</p>
+            </div>
+            <ul class="bullet-list reveal">
+                <li>这一过程就是<span class="highlight">移除流动性</span></li>
+                <li>小票被撕掉相当于<span class="highlight">销毁 LP 代币</span></li>
+                <li>取回量可能比当初投入的<span class="highlight-warning">少</span>，也可能<span class="highlight-green">多</span></li>
+                <li>少掉的水果被来换货的人换走了——这就是<span class="highlight-warning">无常损失</span></li>
+            </ul>
+        </div>
+        <div class="slide-number">17</div>
+    </section>
+
+    <!-- Slide 18: 故事 - 风险与补偿 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">小镇的换货站</h2>
+            <h3 class="reveal" style="color: var(--accent-secondary);">七、风险与补偿：手续费能否覆盖不确定</h3>
+            <div class="accent-box reveal">
+                <p style="font-size: var(--body-size);">做 AMM 是有风险的：取回时可能比当初投入的<span class="highlight-warning">多</span>，也可能<span class="highlight-warning">少</span>。每一笔换货，站里都会扣一点<span class="highlight">手续费</span>（例如 0.3%），这部分钱会按比例分给所有持小票的人。</p>
+            </div>
+            <ul class="bullet-list reveal">
+                <li><span class="highlight">补偿</span> = 你作为 LP 分到的那部分交易手续费</li>
+                <li>手续费能不能覆盖无常损失，要看：</li>
+                <li>手续费率多高、换货量多大、两种水果的相对价格波动多大</li>
+                <li><span class="highlight-warning">有时能覆盖还有赚，有时覆盖不了</span></li>
+            </ul>
+        </div>
+        <div class="slide-number">18</div>
+    </section>
+
+    <!-- Slide 19: 故事与知识点对照 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">故事与知识点对照</h2>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr><th>故事里出现的</th><th>对应的知识点</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>木板、买和卖配对</td><td>订单簿、挂单</td></tr>
+                        <tr><td>摊主主动写收价卖价</td><td>做市、做市商</td></tr>
+                        <tr><td>两个桶 + 纸上规则</td><td>自动做市商 AMM</td></tr>
+                        <tr><td>桶里已经装着的数量</td><td>储备量</td></tr>
+                        <tr><td>补货、发小票、凭票取回</td><td>添加流动性、LP 代币、份额</td></tr>
+                        <tr><td>预期 8 斤、实际 7.5 斤</td><td>滑点</td></tr>
+                        <tr><td>小刚被夹在中间</td><td>三明治攻击</td></tr>
+                        <tr><td>「至少 X 斤否则作废」</td><td>minAmountOut</td></tr>
+                        <tr><td>拿小票取回、取回 8 苹果 7 橙子</td><td>移除流动性、销毁 LP</td></tr>
+                        <tr><td>少掉的水果被换走</td><td>无常损失</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="slide-number">19</div>
+    </section>
+
+    <!-- Slide 20: 概念速查 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">概念速查</h2>
+            <div class="card-grid reveal">
+                <div class="card">
+                    <h3>订单簿</h3>
+                    <p>交易所的"登记册"，记录买卖单，撮合成交。AMM 没有订单簿。</p>
+                </div>
+                <div class="card">
+                    <h3>做市商</h3>
+                    <p>主动报买卖价并愿意同时接买和卖的一方。AMM 用公式做市。</p>
+                </div>
+                <div class="card">
+                    <h3>流动性</h3>
+                    <p>池子里代币的数量。流动性好 = 稍微买/卖价格不会乱跳。</p>
+                </div>
+                <div class="card">
+                    <h3>储备量</h3>
+                    <p>AMM 池子里当前实际存放的每种代币的数量。</p>
+                </div>
+                <div class="card">
+                    <h3>LP 代币</h3>
+                    <p>流动性凭证，代表你在池子里占的份额，可按比例赎回双币。</p>
+                </div>
+                <div class="card">
+                    <h3>滑点</h3>
+                    <p>预期可得数量 − 实际得到数量，用 minAmountOut 保护。</p>
+                </div>
+            </div>
+        </div>
+        <div class="slide-number">20</div>
+    </section>
+
+    <!-- Slide 21: 小结 -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h2 class="reveal">小结</h2>
+            <div class="table-container reveal">
+                <table>
+                    <thead>
+                        <tr><th>知识点</th><th>核心公式/要点</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>AMM</td><td>池子 + 公式定价，无订单簿</td></tr>
+                        <tr><td>x·y=k</td><td>amountOut = reserveOut·amountIn / (reserveIn + amountIn)</td></tr>
+                        <tr><td>添加流动性</td><td>首次 √(A·B)−MIN；后续按比例</td></tr>
+                        <tr><td>移除流动性</td><td>amountA/B = liquidity·reserveA/B / totalSupply</td></tr>
+                        <tr><td>LP 代币</td><td>份额凭证，MINIMUM_LIQUIDITY 锁 address(0)</td></tr>
+                        <tr><td>Swap</td><td>getAmountOut 只读，swap 转币+更新 reserve</td></tr>
+                        <tr><td>滑点</td><td>minAmountOut 保护实际输出</td></tr>
+                        <tr><td>安全</td><td>CEI、参数校验、事件完整</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="reveal" style="margin-top: 2rem; color: var(--accent);">以上内容对应 AMMWithLPToken.sol、SimpleAMM.sol、TestToken.sol</p>
+        </div>
+        <div class="slide-number">21</div>
+    </section>
+
+    <!-- Slide 22: End -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h1 class="reveal big-text">Day 16</h1>
+            <p class="subtitle reveal" style="font-size: clamp(1.2rem, 2.5vw, 1.8rem);">AMM 与 x·y=k 恒定乘积模型</p>
+            <p class="reveal" style="margin-top: 3rem; color: var(--text-muted);">学完啦！</p>
+        </div>
+        <div class="slide-number">22</div>
+    </section>
+
+    <script>
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.totalSlides = this.slides.length;
+
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.setupObserver();
+                this.setupKeyboard();
+                this.setupProgressBar();
+                this.updateSlide();
+            }
+
+            createNavDots() {
+                const nav = document.getElementById('navDots');
+                this.slides.forEach((_, i) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot';
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    nav.appendChild(dot);
+                });
+            }
+
+            setupObserver() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('visible');
+                            this.currentSlide = Array.from(this.slides).indexOf(entry.target);
+                            this.updateSlide();
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+
+            setupKeyboard() {
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+            }
+
+            setupProgressBar() {
+                window.addEventListener('scroll', () => {
+                    const scrollTop = window.scrollY;
+                    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+                    const progress = (scrollTop / docHeight) * 100;
+                    document.getElementById('progressBar').style.width = progress + '%';
+                });
+            }
+
+            updateSlide() {
+                const dots = document.querySelectorAll('.nav-dot');
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.currentSlide);
+                });
+
+                const slideNumber = document.querySelector('.slide-number');
+                if (slideNumber) {
+                    slideNumber.textContent = this.currentSlide + 1;
+                }
+            }
+
+            goToSlide(index) {
+                if (index >= 0 && index < this.totalSlides) {
+                    this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+        });
+    </script>
+</body>
+</html>
