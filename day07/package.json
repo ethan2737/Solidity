@@ -23,7 +23,7 @@
     "string",
     "slice"
   ],
-  "author": "xiucai",
+  "author": "ethan",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
@@ -32,4 +32,3 @@
   },
   "dependencies": {}
 }
-

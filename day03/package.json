@@ -12,18 +12,18 @@
     "clean": "hardhat clean"
   },
   "keywords": [
-    "solidity",           
-    "ethereum",           
-    "smart-contracts",    
-    "hardhat",            
-    "web3",               
-    "blockchain",         
-    "variables",          
-    "boolean",            
-    "integer",            
-    "visibility"          
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "web3",
+    "blockchain",
+    "variables",
+    "boolean",
+    "integer",
+    "visibility"
   ],
-  "author": "xiucai",
+  "author": "ethan",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
@@ -32,4 +32,3 @@
   },
   "dependencies": {}
 }
-

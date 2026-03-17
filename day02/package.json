@@ -19,7 +19,7 @@
     "erc20",
     "gas"
   ],
-  "author": "",
+  "author": "ethan",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",

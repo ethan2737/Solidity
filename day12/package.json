@@ -19,7 +19,7 @@
     "call",
     "delegatecall"
   ],
-  "author": "xiucai",
+  "author": "ethan",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",

@@ -1,7 +1,7 @@
 {
   "name": "day13-advanced-solidity-demo",
   "version": "1.0.0",
-  "description": "Advanced Solidity Demo - Integration of day17 and day18 examples",
+  "description": "day13 - Advanced Solidity Demo - Integration of day17 and day18 examples",
   "main": "index.js",
   "scripts": {
     "compile": "hardhat compile",
@@ -15,7 +15,7 @@
     "hardhat",
     "demo"
   ],
-  "author": "",
+  "author": "ethan",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",

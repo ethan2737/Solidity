@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>流动性挖矿 - Staking Mining</title>
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    <style>
+        /* ===========================================
+           CSS CUSTOM PROPERTIES (THEME)
+           Tech style with high contrast
+           =========================================== */
+        :root {
+            --bg-primary: #0a0f1c;
+            --bg-secondary: #111827;
+            --text-primary: #ffffff;
+            --text-secondary: #94a3b8;
+            --accent: #00ffcc;
+            --accent-glow: rgba(0, 255, 204, 0.3);
+            --code-bg: #1e293b;
+            --danger: #ff4757;
+            --warning: #ffa502;
+
+            --font-display: 'Clash Display', sans-serif;
+            --font-body: 'Satoshi', sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+            --title-size: clamp(4rem, 12vw, 8rem);
+            --h2-size: clamp(3rem, 8vw, 5rem);
+            --h3-size: clamp(2.2rem, 5vw, 3rem);
+            --body-size: clamp(1.6rem, 2.6vw, 2.2rem);
+            --code-size: clamp(1.3rem, 2vw, 1.8rem);
+
+            --slide-padding: clamp(1.5rem, 4vw, 3rem);
+            --content-gap: clamp(1rem, 2vw, 2rem);
+            --element-gap: clamp(0.5rem, 1vw, 1rem);
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.6s;
+        }
+
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            scroll-snap-type: y mandatory;
+            height: 100%;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            height: 100%;
+        }
+
+        /* Slide Container */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .slide-content > * {
+            text-align: center;
+        }
+
+        /* Typography */
+        h1 {
+            font-family: var(--font-display);
+            font-size: var(--title-size);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--element-gap);
+            letter-spacing: -0.02em;
+        }
+
+        h2 {
+            font-family: var(--font-display);
+            font-size: var(--h2-size);
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: var(--content-gap);
+            letter-spacing: -0.01em;
+        }
+
+        h3 {
+            font-family: var(--font-display);
+            font-size: var(--h3-size);
+            font-weight: 500;
+            color: var(--accent);
+            margin-bottom: var(--element-gap);
+        }
+
+        p, li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* Accent text */
+        .accent {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        .accent-glow {
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        /* Lists */
+        ul, ol {
+            list-style: none;
+            display: inline-block;
+            text-align: left;
+        }
+
+        li {
+            margin-bottom: var(--element-gap);
+            padding-left: 1.5em;
+            position: relative;
+        }
+
+        li::before {
+            content: '▸';
+            position: absolute;
+            left: 0;
+            color: var(--accent);
+        }
+
+        /* Code blocks */
+        .code-block {
+            background: var(--code-bg);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: var(--element-gap);
+            margin: var(--element-gap) auto;
+            max-width: 90vw;
+            overflow-x: auto;
+            text-align: left;
+        }
+
+        .code-block code {
+            font-family: var(--font-mono);
+            font-size: var(--code-size);
+            color: var(--text-primary);
+            white-space: pre;
+            display: block;
+            text-align: left;
+        }
+
+        .code-comment {
+            color: #6b7280;
+        }
+
+        .code-keyword {
+            color: #c084fc;
+        }
+
+        .code-function {
+            color: #60a5fa;
+        }
+
+        .code-string {
+            color: #34d399;
+        }
+
+        .code-number {
+            color: #f59e0b;
+        }
+
+        /* Two column layout */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--content-gap);
+            text-align: left;
+        }
+
+        .two-col > div {
+            background: var(--bg-secondary);
+            padding: var(--content-gap);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* Grid layout for cards */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(min(40vw, 250px), 1fr));
+            gap: var(--element-gap);
+            text-align: left;
+        }
+
+        .card {
+            background: var(--bg-secondary);
+            padding: var(--content-gap);
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: transform 0.3s var(--ease-out-expo), box-shadow 0.3s var(--ease-out-expo);
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .card h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5em;
+        }
+
+        .card p {
+            font-size: 0.85em;
+        }
+
+        /* Table */
+        .table-wrapper {
+            overflow-x: auto;
+            max-width: 90vw;
+            margin: 0 auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--body-size);
+        }
+
+        th, td {
+            padding: 0.75em 1em;
+            text-align: left;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        th {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        td:first-child {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Animations */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide.visible .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .slide.visible .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .slide.visible .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .slide.visible .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .slide.visible .reveal:nth-child(5) { transition-delay: 0.5s; }
+
+        /* Background effects */
+        .gradient-bg {
+            background:
+                radial-gradient(ellipse at 20% 80%, rgba(0, 255, 204, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, rgba(192, 132, 252, 0.1) 0%, transparent 50%),
+                var(--bg-primary);
+        }
+
+        .grid-bg {
+            background-image:
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* Progress bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent);
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.3s;
+        }
+
+        /* Navigation dots */
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .nav-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .nav-dot:hover {
+            background: rgba(255,255,255,0.5);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .two-col {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: 1rem;
+                --content-gap: 0.75rem;
+                --element-gap: 0.4rem;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reveal {
+                transition: opacity 0.3s ease;
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+
+    <!-- Slide 1: Title -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h1 class="reveal accent-glow">流动性挖矿</h1>
+            <h2 class="reveal">Staking Mining</h2>
+            <p class="reveal" style="margin-top: 1rem; color: var(--text-secondary);">Soldering开发实战 - Day17</p>
+        </div>
+    </section>
+
+    <!-- Slide 2: What is Mining? -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">什么是"挖矿"？</h2>
+
+            <div class="two-col reveal" style="margin-top: 2rem;">
+                <div>
+                    <h3 style="color: #f59e0b;">传统挖矿 (PoW)</h3>
+                    <ul style="margin-top: 1rem;">
+                        <li>矿工使用算力解决数学难题</li>
+                        <li>最快解决问题的获得BTC奖励</li>
+                        <li>需要专业矿机、消耗电力</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: var(--accent);">DeFi 挖矿</h3>
+                    <ul style="margin-top: 1rem;">
+                        <li>用户质押代币获得奖励</li>
+                        <li>提供流动性获取项目代币</li>
+                        <li>零门槛，存入即可参与</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 3: DeFi Development -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">DeFi 发展简史</h2>
+
+            <div class="grid reveal" style="margin-top: 2rem;">
+                <div class="card">
+                    <h3 style="color: #60a5fa; font-size: 1.5em;">第一阶段 (2015-2017)</h3>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 1.3em;">ERC20标准确立</p>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 1.1em;">统一代币接口，奠定DeFi基础</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: #34d399; font-size: 1.5em;">第二阶段 (2018-2019)</h3>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 1.3em;">DEX AMM 机制</p>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 1.1em;">Uniswap、Balancer 自动做市商</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: #c084fc; font-size: 1.5em;">第三阶段 (2020)</h3>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 1.3em;">流动性挖矿爆发</p>
+                    <p style="color: var(--text-secondary); margin-top: 0.5rem; font-size: 1.1em;">Compound 推出，引爆DeFi热潮</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 4: What is Liquidity Mining -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">什么是流动性挖矿？</h2>
+
+            <div class="code-block reveal" style="margin-top: 2rem; text-align: center;">
+                <code><span class="code-comment">// 用户视角</span>
+<span class="code-function">质押代币</span> → <span class="code-function">获得奖励代币</span>
+
+<span class="code-comment">// 项目方视角</span>
+<span class="code-function">获取用户资产</span> → <span class="code-function">分发项目代币</span></code>
+            </div>
+
+            <p class="reveal" style="margin-top: 2rem;">
+                <span class="accent">双赢</span>：用户获得收益，项目获得流动性
+            </p>
+        </div>
+    </section>
+
+    <!-- Slide 5: Core Concepts -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">核心概念</h2>
+
+            <div class="table-wrapper reveal" style="margin-top: 1.5rem;">
+                <table>
+                    <tr>
+                        <td>质押 (Stake)</td>
+                        <td>用户将代币存入合约，锁定</td>
+                    </tr>
+                    <tr>
+                        <td>解除质押 (Unstake)</td>
+                        <td>用户取出质押的代币</td>
+                    </tr>
+                    <tr>
+                        <td>奖励代币</td>
+                        <td>项目方发放的奖励代币</td>
+                    </tr>
+                    <tr>
+                        <td>质押代币</td>
+                        <td>用户需要存入的代币 (USDT/ETH)</td>
+                    </tr>
+                    <tr>
+                        <td>奖励速率</td>
+                        <td>每秒/每区块发放的奖励数量</td>
+                    </tr>
+                    <tr>
+                        <td>精度因子 1e18</td>
+                        <td>避免整数除法导致结果为0</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 6: Contract Architecture -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">合约整体架构</h2>
+
+            <div class="code-block reveal" style="margin-top: 1rem; max-height: 50vh; overflow-y: auto;">
+                <code><span class="code-keyword">contract</span> <span class="code-function">StakingMining</span> {
+    <span class="code-comment">// 两种代币</span>
+    IERC20 <span class="code-keyword">public</span> stakingToken;  <span class="code-comment">// 质押代币</span>
+    IERC20 <span class="code-keyword">public</span> rewardToken;   <span class="code-comment">// 奖励代币</span>
+
+    <span class="code-comment">// 权限</span>
+    <span class="code-keyword">address public</span> owner;
+    <span class="code-keyword">bool public</span> paused;
+
+    <span class="code-comment">// 奖励系统</span>
+    <span class="code-keyword">uint256 public</span> rewardRate;        <span class="code-comment">// 每秒奖励</span>
+    <span class="code-keyword">uint256 public</span> periodFinish;     <span class="code-comment">// 奖励结束时间</span>
+    <span class="code-keyword">uint256 public</span> rewardPerTokenStored; <span class="code-comment">// 累计每token奖励</span>
+    <span class="code-keyword">uint256 public</span> lastUpdateTime;
+
+    <span class="code-comment">// 用户数据</span>
+    <span class="code-keyword">struct</span> UserInfo {
+        uint256 stakedAmount;       <span class="code-comment">// 质押数量</span>
+        uint256 rewardPerTokenPaid; <span class="code-comment">// 已付每token奖励</span>
+        uint256 rewards;            <span class="code-comment">// 待领取奖励</span>
+        uint256 lastStakeTime;      <span class="code-comment">// 上次质押时间</span>
+    }
+    <span class="code-keyword">mapping</span>(<span class="code-keyword">address</span> => UserInfo) <span class="code-keyword">public</span> userinfo;
+    <span class="code-keyword">uint256 public</span> totalStaked;
+}</code>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 7: Core Functions -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">核心函数</h2>
+
+            <div class="grid reveal" style="margin-top: 1.5rem;">
+                <div class="card">
+                    <h3 style="color: var(--accent); font-size: 1.5em;">stake()</h3>
+                    <p style="font-size: 1.2em;">质押代币到合约</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent); font-size: 1.5em;">unstake()</h3>
+                    <p style="font-size: 1.2em;">解除质押，取回代币</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent); font-size: 1.5em;">claimReward()</h3>
+                    <p style="font-size: 1.2em;">领取已赚取的奖励</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent); font-size: 1.5em;">setRewardRate()</h3>
+                    <p style="font-size: 1.2em;">设置奖励速率 (owner)</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent); font-size: 1.5em;">pause/unpause()</h3>
+                    <p style="font-size: 1.2em;">暂停/恢复合约 (owner)</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: var(--accent); font-size: 1.5em;">emergencyWithdraw()</h3>
+                    <p style="font-size: 1.2em;">紧急提取代币 (owner)</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 8: Stake Function -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">质押函数 stake()</h2>
+
+            <div class="code-block reveal" style="margin-top: 1rem; max-height: 55vh; overflow-y: auto;">
+                <code><span class="code-keyword">function</span> <span class="code-function">stake</span>(<span class="code-keyword">uint256</span> amount) <span class="code-keyword">external</span> {
+    <span class="code-comment">// 1. Checks - 检查</span>
+    <span class="code-keyword">if</span> (amount == 0) <span class="code-keyword">revert</span> InvalidAmount();
+    <span class="code-keyword">if</span> (stakingToken.balanceOf(msg.sender) < amount)
+        <span class="code-keyword">revert</span> InsufficientBalance();
+
+    <span class="code-keyword">uint256</span> balanceBefore = stakingToken.balanceOf(<span class="code-keyword">address</span>(<span class="code-keyword">this</span>));
+
+    <span class="code-comment">// 2. Effects - 更新状态 (先于外部调用!)</span>
+    UserInfo <span class="code-keyword">storage</span> user = userinfo[msg.sender];
+    user.stakedAmount += amount;
+    user.lastStakeTime = block.timestamp;
+    totalStaked += amount;
+
+    <span class="code-comment">// 3. Interactions - 外部调用 (最后执行)</span>
+    stakingToken.transferFrom(msg.sender, <span class="code-keyword">address</span>(<span class="code-keyword">this</span>), amount);
+
+    <span class="code-comment">// 验证余额变化</span>
+    <span class="code-keyword">uint256</span> balanceAfter = stakingToken.balanceOf(<span class="code-keyword">address</span>(<span class="code-keyword">this</span>));
+    <span class="code-keyword">if</span> (balanceAfter != balanceBefore + amount) {
+        <span class="code-keyword">revert</span> FlashLoanAttackDetected();
+    }
+}</code>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 9: Reward Calculation -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">奖励计算公式</h2>
+
+            <div class="code-block reveal" style="margin-top: 1rem;">
+                <code><span class="code-comment">// 每质押1个代币，累计应得多少奖励</span>
+<span class="code-keyword">function</span> <span class="code-function">rewardPerToken</span>() <span class="code-keyword">public view</span> returns (<span class="code-keyword">uint256</span>) {
+    <span class="code-keyword">if</span> (totalStaked == 0) <span class="code-keyword">return</span> rewardPerTokenStored;
+
+    <span class="code-keyword">uint256</span> lastTime = <span class="code-function">lastTimeRewardApplicable</span>();
+    <span class="code-keyword">uint256</span> timeElapsed = lastTime - lastUpdateTime;
+
+    <span class="code-comment">// 公式: 时间差 × 速率 × 1e18 ÷ 总质押量</span>
+    <span class="code-keyword">uint256</span> reward = timeElapsed * rewardRate * 1e18 / totalStaked;
+
+    <span class="code-keyword">return</span> rewardPerTokenStored + reward;
+}</code>
+            </div>
+
+            <p class="reveal" style="margin-top: 1.5rem;">
+                <span class="accent">1e18</span> 精度因子：避免整数除法导致结果为0
+            </p>
+        </div>
+    </section>
+
+    <!-- Slide 10: lastTimeRewardApplicable -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">lastTimeRewardApplicable()</h2>
+
+            <div class="code-block reveal" style="margin-top: 1rem;">
+                <code><span class="code-comment">// 获取奖励适用的最后时间</span>
+<span class="code-keyword">function</span> <span class="code-function">lastTimeRewardApplicable</span>() <span class="code-keyword">public view</span> returns (<span class="code-keyword">uint256</span>) {
+    <span class="code-keyword">return</span> block.timestamp < periodFinish ? block.timestamp : periodFinish;
+}</code>
+            </div>
+
+            <ul class="reveal" style="margin-top: 2rem; text-align: center; display: inline-block;">
+                <li>返回 <span class="accent">min(当前时间, 结束时间)</span></li>
+                <li>防止奖励无限累积</li>
+                <li>确保奖励发放不超过设定周期</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Slide 11: earned() -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">计算用户应得奖励</h2>
+
+            <div class="code-block reveal" style="margin-top: 1rem;">
+                <code><span class="code-comment">// 用户当前可领取多少奖励</span>
+<span class="code-keyword">function</span> <span class="code-function">earned</span>(<span class="code-keyword">address</span> account) <span class="code-keyword">public view</span> returns (<span class="code-keyword">uint256</span>) {
+    UserInfo <span class="code-keyword">storage</span> user = userinfo[account];
+
+    <span class="code-keyword">if</span> (totalStaked == 0) <span class="code-keyword">return</span> user.rewards;
+
+    <span class="code-comment">// 新增奖励 = 质押数量 × 每token增量 ÷ 1e18</span>
+    <span class="code-keyword">uint256</span> currentRewardPerToken = <span class="code-function">rewardPerToken</span>() - user.rewardPerTokenPaid;
+    <span class="code-keyword">uint256</span> newRewards = user.stakedAmount * currentRewardPerToken / 1e18;
+
+    <span class="code-keyword">return</span> user.rewards + newRewards;
+}</code>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 12: updateReward Modifier -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">updateReward 修改器</h2>
+
+            <div class="code-block reveal" style="margin-top: 1rem; max-height: 50vh; overflow-y: auto;">
+                <code><span class="code-keyword">modifier</span> <span class="code-function">updateReward</span>(<span class="code-keyword">address</span> account) {
+    <span class="code-comment">// 1. 更新全局累计奖励</span>
+    rewardPerTokenStored = <span class="code-function">rewardPerToken</span>();
+
+    <span class="code-comment">// 2. 更新最后时间</span>
+    lastUpdateTime = <span class="code-function">lastTimeRewardApplicable</span>();
+
+    <span class="code-comment">// 3. 更新用户奖励记录</span>
+    <span class="code-keyword">if</span> (account != <span class="code-keyword">address</span>(0)) {
+        userinfo[account].rewards = <span class="code-function">earned</span>(account);
+        userinfo[account].rewardPerTokenPaid = rewardPerTokenStored;
+    }
+
+    <span class="code-comment">// 4. 执行函数体</span>
+    _;
+}</code>
+            </div>
+
+            <p class="reveal" style="margin-top: 1rem;">
+                每次质押/解除质押/领取奖励时<span class="accent">自动更新</span>用户奖励
+            </p>
+        </div>
+    </section>
+
+    <!-- Slide 13: CEI Pattern -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">CEI 安全模式</h2>
+
+            <div class="two-col reveal" style="margin-top: 2rem;">
+                <div>
+                    <h3 style="color: var(--danger);">错误顺序 ❌</h3>
+                    <ul style="margin-top: 1rem;">
+                        <li>先转账</li>
+                        <li>后更新状态</li>
+                        <li>→ 可被重入攻击</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 style="color: var(--accent);">正确顺序 ✓</h3>
+                    <ul style="margin-top: 1rem;">
+                        <li>1. Checks 检查</li>
+                        <li>2. Effects 更新状态</li>
+                        <li>3. Interactions 外部调用</li>
+                    </ul>
+                </div>
+            </div>
+
+            <p class="reveal" style="margin-top: 2rem;">
+                防止攻击者通过<span class="accent">回调函数</span>重新进入合约
+            </p>
+        </div>
+    </section>
+
+    <!-- Slide 14: Flash Loan Protection -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">闪电贷防护</h2>
+
+            <p class="reveal" style="color: var(--warning); margin-bottom: 1rem;">
+                ⚠️ 常见误区：余额检查 ≠ 防范闪电贷
+            </p>
+
+            <div class="reveal" style="text-align: center; display: inline-block;">
+                <h3>余额检查的真正作用：</h3>
+                <ul style="margin-top: 0.5rem; margin-bottom: 1.5rem;">
+                    <li>防止<span class="accent">代币合约回调钩子</span>导致余额异常</li>
+                </ul>
+
+                <h3>真正的闪电贷防护：</h3>
+                <ul style="margin-top: 0.5rem;">
+                    <li>1. <span class="accent">最短质押期限</span>：要求质押满一定时间才能领取奖励</li>
+                    <li>2. CEI模式：防止重入</li>
+                    <li>3. 区块时间戳：闪电贷无法操控时间</li>
+                    <li>4. 奖励延迟释放：奖励不是立即可领取</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 15: Pause Mechanism -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal">暂停机制</h2>
+
+            <div class="code-block reveal" style="margin-top: 1rem;">
+                <code><span class="code-comment">// 暂停修改器</span>
+<span class="code-keyword">modifier</span> <span class="code-function">whenNotPaused</span>() {
+    <span class="code-keyword">if</span> (paused) <span class="code-keyword">revert</span> ContractPausedError();
+    _;
+}
+
+<span class="code-comment">// 所有关键函数都加上这个修改器</span>
+<span class="code-keyword">function</span> <span class="code-function">stake</span>(...) <span class="code-keyword">external whenNotPaused</span> { ... }
+<span class="code-keyword">function</span> <span class="code-function">unstake</span>(...) <span class="code-keyword">external whenNotPaused</span> { ... }
+<span class="code-keyword">function</span> <span class="code-function">claimReward</span>(...) <span class="code-keyword">external whenNotPaused</span> { ... }</code>
+            </div>
+
+            <ul class="reveal" style="margin-top: 1.5rem; text-align: center; display: inline-block;">
+                <li>发现合约bug → 暂停保护用户资金</li>
+                <li>发现异常攻击 → 暂停阻止攻击</li>
+                <li>项目升级 → 暂停过渡</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- Slide 16: Summary -->
+    <section class="slide gradient-bg">
+        <div class="slide-content">
+            <h2 class="reveal" style="font-size: 1.5em;">总结</h2>
+
+            <div class="grid reveal" style="margin-top: 2rem;">
+                <div class="card">
+                    <h3 style="color: #60a5fa; font-size: 1.5em;">1. 流动性挖矿</h3>
+                    <p style="font-size: 1.3em;">ERC20 → DEX AMM → 流动性挖矿</p>
+                    <p style="margin-top: 0.5rem; font-size: 1.1em;">项目方用代币换取用户资产</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: #34d399; font-size: 1.5em;">2. 核心概念</h3>
+                    <p style="font-size: 1.3em;">质押/解除质押/领取奖励</p>
+                    <p style="margin-top: 0.5rem; font-size: 1.1em;">奖励速率、累计奖励、精度因子</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: #c084fc; font-size: 1.5em;">3. 奖励计算</h3>
+                    <p style="font-size: 1.3em;">复利累积思想</p>
+                    <p style="margin-top: 0.5rem; font-size: 1.1em;">rewardPerTokenStored 全局累计</p>
+                </div>
+                <div class="card">
+                    <h3 style="color: #f59e0b; font-size: 1.5em;">4. 安全机制</h3>
+                    <p style="font-size: 1.3em;">CEI模式 / 暂停机制</p>
+                    <p style="margin-top: 0.5rem; font-size: 1.1em;">最短质押期限 / 奖励延迟</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Slide 17: End -->
+    <section class="slide gradient-bg grid-bg">
+        <div class="slide-content">
+            <h1 class="reveal accent-glow">Thanks!</h1>
+            <p class="reveal" style="margin-top: 2rem; color: var(--text-secondary);">
+                Solidity 开发实战 - Day 17
+            </p>
+        </div>
+    </section>
+
+    <script>
+        /* ===========================================
+           Slide Presentation Controller
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.progressBar = document.getElementById('progressBar');
+                this.navDotsContainer = document.getElementById('navDots');
+                this.currentSlide = 0;
+                this.totalSlides = this.slides.length;
+
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.bindEvents();
+                this.updateProgress();
+                this.checkSlideVisibility();
+            }
+
+            createNavDots() {
+                for (let i = 0; i < this.totalSlides; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot' + (i === 0 ? ' active' : '');
+                    dot.addEventListener('click', () => this.goToSlide(i));
+                    this.navDotsContainer.appendChild(dot);
+                }
+            }
+
+            bindEvents() {
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+
+                // Scroll navigation
+                let scrollTimeout;
+                window.addEventListener('scroll', () => {
+                    clearTimeout(scrollTimeout);
+                    scrollTimeout = setTimeout(() => this.checkSlideVisibility(), 50);
+                });
+
+                // Touch/swipe support
+                let touchStartY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                });
+                document.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchStartY - touchEndY;
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) this.nextSlide();
+                        else this.prevSlide();
+                    }
+                });
+            }
+
+            checkSlideVisibility() {
+                const scrollPos = window.scrollY;
+                const windowHeight = window.innerHeight;
+                const newSlide = Math.round(scrollPos / windowHeight);
+
+                if (newSlide !== this.currentSlide && newSlide >= 0 && newSlide < this.totalSlides) {
+                    this.currentSlide = newSlide;
+                    this.updateProgress();
+                    this.updateNavDots();
+                    this.animateSlide();
+                }
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSlide + 1) / this.totalSlides) * 100;
+                this.progressBar.style.width = progress + '%';
+            }
+
+            updateNavDots() {
+                const dots = this.navDotsContainer.querySelectorAll('.nav-dot');
+                dots.forEach((dot, i) => {
+                    dot.classList.toggle('active', i === this.currentSlide);
+                });
+            }
+
+            animateSlide() {
+                const slide = this.slides[this.currentSlide];
+                slide.classList.add('visible');
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            goToSlide(index) {
+                window.scrollTo({
+                    top: index * window.innerHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            new SlidePresentation();
+            document.querySelector('.slide').classList.add('visible');
+        });
+    </script>
+</body>
+</html>

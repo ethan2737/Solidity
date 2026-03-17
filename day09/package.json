@@ -1,7 +1,7 @@
 {
   "name": "solidity-day10-modifier",
   "version": "1.0.0",
-  "description": "Day 10 - Solidity 函数：函数修改器（modifier）使用",
+  "description": "Day 9 - Solidity 函数：函数修改器（modifier）使用",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
@@ -22,7 +22,7 @@
     "access-control",
     "function-modifier"
   ],
-  "author": "xiucai",
+  "author": "ethan",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
@@ -31,4 +31,3 @@
   },
   "dependencies": {}
 }
-

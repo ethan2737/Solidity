@@ -1,7 +1,7 @@
 {
   "name": "solidity-day23-erc20-token",
   "version": "1.0.0",
-  "description": "Day 23 - DeFi 开发实战：ERC20 代币标准详解",
+  "description": "Day 15 - DeFi 开发实战：ERC20 代币标准详解",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",

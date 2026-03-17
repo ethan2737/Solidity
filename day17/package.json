@@ -1,11 +1,13 @@
 {
-  "name": "solidity-notes-day01",
+  "name": "day17-staking-mining",
   "version": "1.0.0",
-  "description": "Day 1 - 区块链原理 + 以太坊基础 + HelloWorld 合约",
+  "description": "Day17-流动性挖矿合约开发：staking/mining合约",
   "scripts": {
     "compile": "hardhat compile",
     "test": "hardhat test",
+    "test:ai": "node test/ai-automated-test.js",
     "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "verify": "hardhat run scripts/verify.js --network localhost",
     "node": "hardhat node",
     "clean": "hardhat clean"
   },
@@ -15,13 +17,20 @@
     "smart-contracts",
     "hardhat",
     "web3",
-    "blockchain"
+    "blokchain",
+    "staking",
+    "mining",
+    "liquidity-mining",
+    "defi"
   ],
   "author": "ethan",
   "license": "MIT",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "chai": "^4.3.10",
-    "hardhat": "^2.19.0"
+    "chai": "^4.5.0",
+    "hardhat": "^2.28.6"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.6.1"
   }
 }
