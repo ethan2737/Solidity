@@ -1,0 +1,1121 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>闪电贷（Flash Loan）培训</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ===========================================
+           VIEWPORT FITTING: MANDATORY BASE STYLES
+           =========================================== */
+        html, body {
+            height: 100%;
+            overflow-x: hidden;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-snap-type: y mandatory;
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            /* 鲜明对比色配色 - 深色背景 + 荧光色 */
+            --bg-primary: #0a0a0a;
+            --bg-gradient: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%);
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --accent: #00ff88;
+            --accent-glow: rgba(0, 255, 136, 0.4);
+            --accent-secondary: #00d4ff;
+            --danger: #ff4757;
+            --warning: #ffa502;
+            --code-bg: #1e1e2e;
+
+            /* 大字体撑满屏幕 */
+            --title-size: clamp(2.5rem, 8vw, 6rem);
+            --h1-size: clamp(2rem, 6vw, 4.5rem);
+            --h2-size: clamp(1.5rem, 4vw, 3rem);
+            --h3-size: clamp(1.2rem, 3vw, 2rem);
+            --body-size: clamp(1rem, 2vw, 1.5rem);
+            --code-size: clamp(0.7rem, 1.2vw, 1rem);
+
+            --slide-padding: clamp(1.5rem, 5vw, 5rem);
+            --content-gap: clamp(1rem, 3vw, 3rem);
+        }
+
+        /* ===========================================
+           SLIDE CONTAINER
+           =========================================== */
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            padding: var(--slide-padding);
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            overflow: hidden;
+            background: var(--bg-gradient);
+        }
+
+        .slide::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(circle at 20% 80%, rgba(0, 255, 136, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 80% 20%, rgba(0, 212, 255, 0.08) 0%, transparent 40%);
+            pointer-events: none;
+        }
+
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            max-width: 95vw;
+            max-height: 100%;
+            overflow: hidden;
+            text-align: center;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===========================================
+           TYPOGRAPHY
+           =========================================== */
+        h1 {
+            font-size: var(--title-size);
+            font-weight: 900;
+            color: var(--text-primary);
+            margin: 0;
+            line-height: 1.1;
+            text-shadow: 0 0 40px var(--accent-glow);
+        }
+
+        h1 .highlight {
+            color: var(--accent);
+            text-shadow: 0 0 60px var(--accent-glow);
+        }
+
+        h2 {
+            font-size: var(--h1-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 var(--content-gap) 0;
+            line-height: 1.2;
+        }
+
+        h2 .accent {
+            color: var(--accent);
+        }
+
+        h3 {
+            font-size: var(--h2-size);
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 var(--content-gap) 0;
+        }
+
+        p, li {
+            font-size: var(--body-size);
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .subtitle {
+            font-size: var(--h3-size);
+            color: var(--text-secondary);
+            margin-top: 1rem;
+        }
+
+        /* ===========================================
+           CODE BLOCKS
+           =========================================== */
+        .code-container {
+            width: 100%;
+            max-width: 90vw;
+            display: flex;
+            justify-content: center;
+        }
+
+        pre {
+            background: var(--code-bg);
+            border: 1px solid rgba(0, 255, 136, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            overflow-x: auto;
+            text-align: left;
+            font-family: 'Fira Code', monospace;
+            font-size: var(--code-size);
+            line-height: 1.5;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.1);
+        }
+
+        code {
+            color: var(--text-primary);
+        }
+
+        .keyword { color: #c792ea; }
+        .function { color: #82aaff; }
+        .string { color: #c3e88d; }
+        .comment { color: #676e95; }
+        .number { color: #f78c6c; }
+        .type { color: #ffcb6b; }
+
+        /* ===========================================
+           LISTS
+           =========================================== */
+        ul, ol {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0.8rem;
+        }
+
+        li {
+            font-size: var(--body-size);
+            padding: 0.5rem 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.8rem;
+        }
+
+        li::before {
+            content: '▸';
+            color: var(--accent);
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        .big-list li {
+            font-size: var(--h3-size);
+            padding: 0.8rem 0;
+        }
+
+        .big-list li::before {
+            font-size: 1.2em;
+        }
+
+        /* ===========================================
+           TABLES
+           =========================================== */
+        .table-container {
+            width: 100%;
+            max-width: 95vw;
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--body-size);
+        }
+
+        th, td {
+            padding: 1rem 1.5rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        th {
+            color: var(--accent);
+            font-weight: 700;
+            font-size: var(--body-size);
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        td:first-child {
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        /* ===========================================
+           CARDS / BOXES
+           =========================================== */
+        .box {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 1rem 0;
+        }
+
+        .box.accent {
+            border-color: var(--accent);
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.1);
+        }
+
+        .box.danger {
+            border-color: var(--danger);
+            box-shadow: 0 0 30px rgba(255, 71, 87, 0.1);
+        }
+
+        /* ===========================================
+           FLOW DIAGRAM
+           =========================================== */
+        .flow {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .flow-step {
+            background: var(--code-bg);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            font-size: var(--body-size);
+            white-space: nowrap;
+        }
+
+        .flow-arrow {
+            color: var(--accent);
+            font-size: 1.5rem;
+        }
+
+        .flow-vertical {
+            flex-direction: column;
+        }
+
+        /* ===========================================
+           COMPARISON
+           =========================================== */
+        .compare {
+            display: flex;
+            gap: 2rem;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .compare-item {
+            flex: 1;
+            min-width: 280px;
+            max-width: 400px;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: left;
+        }
+
+        .compare-item.wrong {
+            background: rgba(255, 71, 87, 0.1);
+            border: 2px solid var(--danger);
+        }
+
+        .compare-item.right {
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid var(--accent);
+        }
+
+        .compare-item h4 {
+            margin: 0 0 1rem 0;
+            font-size: var(--h3-size);
+        }
+
+        .compare-item.wrong h4 { color: var(--danger); }
+        .compare-item.right h4 { color: var(--accent); }
+
+        /* ===========================================
+           ANIMATIONS
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease, transform 0.6s ease;
+        }
+
+        .slide.visible .reveal {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .slide.visible .reveal:nth-child(1) { transition-delay: 0.1s; }
+        .slide.visible .reveal:nth-child(2) { transition-delay: 0.2s; }
+        .slide.visible .reveal:nth-child(3) { transition-delay: 0.3s; }
+        .slide.visible .reveal:nth-child(4) { transition-delay: 0.4s; }
+        .slide.visible .reveal:nth-child(5) { transition-delay: 0.5s; }
+
+        /* ===========================================
+           PROGRESS BAR
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: var(--accent);
+            width: 0%;
+            z-index: 1000;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        /* ===========================================
+           NAV DOTS
+           =========================================== */
+        .nav-dots {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .nav-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .nav-dot.active {
+            background: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+            transform: scale(1.3);
+        }
+
+        /* ===========================================
+           KEYBOARD HINT
+           =========================================== */
+        .keyboard-hint {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            opacity: 0.6;
+        }
+
+        /* ===========================================
+           RESPONSIVE
+           =========================================== */
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: 1rem;
+                --content-gap: 0.5rem;
+            }
+            .nav-dots { display: none; }
+        }
+
+        @media (max-width: 768px) {
+            pre {
+                padding: 1rem;
+                font-size: 0.65rem;
+            }
+            .compare {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progress"></div>
+    <nav class="nav-dots" id="navDots"></nav>
+    <div class="keyboard-hint">← → 方向键 或 滚轮 导航</div>
+
+    <!-- SLIDE 1: 封面 -->
+    <section class="slide" id="slide1">
+        <div class="slide-content">
+            <h1 class="reveal"><span class="highlight">闪电贷</span></h1>
+            <h2 class="reveal">Flash Loan</h2>
+            <p class="subtitle reveal">回调机制强化理解版</p>
+            <p class="reveal" style="margin-top: 2rem; color: var(--accent);">Day 18 - Solidity 学习</p>
+        </div>
+    </section>
+
+    <!-- SLIDE 2: 核心结论 -->
+    <section class="slide" id="slide2">
+        <div class="slide-content">
+            <h2 class="reveal">核心结论</h2>
+            <h3 class="reveal" style="color: var(--accent); margin-bottom: 2rem;">先记住这5句话</h3>
+            <ul class="big-list">
+                <li class="reveal">借款人必须调用池子的 <span style="color: var(--accent);">flashLoan</span> 函数才能借钱</li>
+                <li class="reveal">一旦调用 flashLoan，<span style="color: var(--accent);">控制权</span>就交给池子合约</li>
+                <li class="reveal"><span style="color: var(--accent);">onFlashLoan</span> 是池子在执行过程中"回调"借款人的函数</li>
+                <li class="reveal">套利等操作必须在 <span style="color: var(--accent);">onFlashLoan</span> 回调中完成</li>
+                <li class="reveal">必须在回调结束前归还<span style="color: var(--accent);">本金+手续费</span>，否则整个交易回滚</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SLIDE 3: 什么是闪电贷 -->
+    <section class="slide" id="slide3">
+        <div class="slide-content">
+            <h2 class="reveal">什么是<span class="accent">闪电贷</span>？</h2>
+            <div class="box accent reveal" style="margin-top: 2rem;">
+                <p style="font-size: var(--h2-size); color: var(--text-primary); line-height: 1.4;">
+                    闪电贷是 DeFi 领域的一种创新金融工具，<br>
+                    允许用户在同一笔区块链交易中<br>
+                    <span style="color: var(--accent);">无需抵押任何资产</span>即可借入大量资金
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 4: 关键特性 -->
+    <section class="slide" id="slide4">
+        <div class="slide-content">
+            <h2 class="reveal">关键特性</h2>
+            <ul class="big-list" style="margin-top: 2rem;">
+                <li class="reveal"><span style="color: var(--accent);">无抵押借款</span> — 传统借贷需要超额抵押，闪电贷无需抵押</li>
+                <li class="reveal"><span style="color: var(--accent);">单笔交易完成</span> — 借款、还款必须在同一个区块的一笔交易中完成</li>
+                <li class="reveal"><span style="color: var(--accent);">原子性操作</span> — 如果还款失败，整个交易回滚，就像什么都没发生过</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SLIDE 5: 术语解释 -->
+    <section class="slide" id="slide5">
+        <div class="slide-content">
+            <h2 class="reveal">术语解释</h2>
+            <div class="table-container reveal" style="margin-top: 1.5rem;">
+                <table>
+                    <tr><th>术语</th><th>解释</th></tr>
+                    <tr><td>Flash Loan</td><td>闪电贷，一种无抵押的即时贷款机制</td></tr>
+                    <tr><td>Liquidity Pool</td><td>流动性池，存储可供借贷的资金池</td></tr>
+                    <tr><td>Borrower</td><td>借款人，通过闪电贷借入资金的主体</td></tr>
+                    <tr><td>Fee</td><td>手续费，闪电贷借款人需要支付的费用</td></tr>
+                    <tr><td>Callback</td><td>回调函数，借款成功后被调用的函数</td></tr>
+                    <tr><td>Atomic</td><td>原子性，交易要么完全成功，要么完全回滚</td></tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 6: 角色与职责 -->
+    <section class="slide" id="slide6">
+        <div class="slide-content">
+            <h2 class="reveal">角色与职责</h2>
+            <div class="compare" style="margin-top: 2rem;">
+                <div class="compare-item reveal">
+                    <h4>池子合约</h4>
+                    <ul>
+                        <li>提供 flashLoan 函数</li>
+                        <li>借钱能力</li>
+                        <li>验证还款</li>
+                    </ul>
+                </div>
+                <div class="compare-item reveal">
+                    <h4>借款人合约</h4>
+                    <ul>
+                        <li>调用 flashLoan 发起借款</li>
+                        <li>实现 onFlashLoan 回调函数</li>
+                        <li>执行套利操作</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 7: 正确理解 vs 错误理解 -->
+    <section class="slide" id="slide7">
+        <div class="slide-content">
+            <h2 class="reveal">最容易搞错的点</h2>
+            <div class="compare" style="margin-top: 1.5rem;">
+                <div class="compare-item wrong reveal">
+                    <h4>❌ 错误理解</h4>
+                    <ul>
+                        <li>我要实现 flashLoan 才能借钱</li>
+                        <li>回调函数是我主动调用的</li>
+                        <li>池子在"监控"我</li>
+                    </ul>
+                </div>
+                <div class="compare-item right reveal">
+                    <h4>✅ 正确理解</h4>
+                    <ul>
+                        <li>我调用 flashLoan（发起借款）</li>
+                        <li>池子执行整个流程</li>
+                        <li>池子在过程中调用我的 onFlashLoan</li>
+                        <li>我的逻辑是在池子的执行流程中被执行</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 8: 执行控制权 -->
+    <section class="slide" id="slide8">
+        <div class="slide-content">
+            <h2 class="reveal">执行控制权</h2>
+            <h3 class="reveal" style="color: var(--accent); margin: 2rem 0;">关键理解</h3>
+            <div class="box accent reveal">
+                <p style="font-size: var(--h2-size); color: var(--danger); margin-bottom: 1rem;">❌ 不是实现 onFlashLoan 接口的时候</p>
+                <p style="font-size: var(--h2-size); color: var(--accent);">✅ 而是调用 flashLoan 的那一刻</p>
+            </div>
+            <div class="flow reveal" style="margin-top: 2rem;">
+                <span class="flow-step">你</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-step">池子</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-step" style="border-color: var(--accent-secondary);">你（回调）</span>
+                <span class="flow-arrow">→</span>
+                <span class="flow-step">池子</span>
+            </div>
+            <p class="reveal" style="margin-top: 1.5rem; color: var(--text-secondary);">
+                你只是"被调用的一段逻辑"，不是主导者
+            </p>
+        </div>
+    </section>
+
+    <!-- SLIDE 9: 回调函数本质 -->
+    <section class="slide" id="slide9">
+        <div class="slide-content">
+            <h2 class="reveal">回调函数本质</h2>
+            <h3 class="reveal" style="color: var(--text-secondary); margin-bottom: 2rem;">重新定义</h3>
+            <div class="box accent reveal">
+                <p style="font-size: var(--h1-size); color: var(--text-primary); line-height: 1.3;">
+                    回调函数 = 池子合约在执行过程中，<br>
+                    <span style="color: var(--accent);">强制调用</span>借款人执行的一段逻辑入口
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 10: 完整调用链 -->
+    <section class="slide" id="slide10">
+        <div class="slide-content">
+            <h2 class="reveal">完整调用链</h2>
+            <p class="reveal" style="color: var(--text-secondary); margin-bottom: 1.5rem;">最重要</p>
+            <div class="flow flow-vertical reveal" style="gap: 0.5rem;">
+                <span class="flow-step">你（借款人）调用 flashLoan</span>
+                <span class="flow-arrow">↓</span>
+                <span class="flow-step">池子执行</span>
+                <span class="flow-arrow">↓</span>
+                <span class="flow-step" style="border-color: var(--accent);">转钱给你</span>
+                <span class="flow-arrow">↓</span>
+                <span class="flow-step" style="border-color: var(--accent-secondary);">调用 onFlashLoan（你）</span>
+                <span class="flow-arrow">↓</span>
+                <span class="flow-step" style="border-color: var(--accent-secondary);">你执行套利</span>
+                <span class="flow-arrow">↓</span>
+                <span class="flow-step">返回池子</span>
+                <span class="flow-arrow">↓</span>
+                <span class="flow-step">池子检查还款</span>
+                <span class="flow-arrow">↓</span>
+                <span class="flow-step" style="border-color: var(--danger);">交易结束 或 回滚</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 11: 本质理解 -->
+    <section class="slide" id="slide11">
+        <div class="slide-content">
+            <h2 class="reveal">真实本质</h2>
+            <h3 class="reveal" style="color: var(--text-secondary); margin-bottom: 2rem;">升维理解</h3>
+            <div class="compare">
+                <div class="compare-item wrong reveal">
+                    <h4>❌ 直觉理解</h4>
+                    <p style="font-size: var(--h2-size);">借钱 → 操作 → 还钱</p>
+                </div>
+                <div class="compare-item right reveal">
+                    <h4>✅ 本质理解</h4>
+                    <p style="font-size: var(--h2-size); color: var(--accent);">
+                        在池子的一次函数执行过程中，<br>
+                        插入一段你的逻辑
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 12: 传统借贷问题 -->
+    <section class="slide" id="slide12">
+        <div class="slide-content">
+            <h2 class="reveal">为什么会有闪电贷？</h2>
+            <h3 class="reveal" style="color: var(--text-secondary); margin-bottom: 2rem;">传统借贷的问题</h3>
+            <div class="box danger reveal">
+                <ul class="big-list">
+                    <li>要借入价值 80 美元的资产，需要存入价值 100 美元的加密货币作为抵押</li>
+                    <li>如果违约，损失全部抵押品</li>
+                    <li style="color: var(--danger);">问题：资金效率低，大量资产被锁定</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 13: 闪电贷创新 -->
+    <section class="slide" id="slide13">
+        <div class="slide-content">
+            <h2 class="reveal">闪电贷的创新</h2>
+            <ul class="big-list" style="margin-top: 2rem;">
+                <li class="reveal"><span style="color: var(--accent);">资金效率最大化</span> — 无需抵押，资金零成本借出</li>
+                <li class="reveal"><span style="color: var(--accent);">套利机会</span> — 利用不同 DEX 之间的价格差异进行无风险套利</li>
+                <li class="reveal"><span style="color: var(--accent);">降低门槛</span> — 任何人都可以参与复杂的金融操作</li>
+                <li class="reveal"><span style="color: var(--accent);">创新基础</span> — 催生了闪电贷攻击、即时杠杆等新玩法</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SLIDE 14: 应用场景 -->
+    <section class="slide" id="slide14">
+        <div class="slide-content">
+            <h2 class="reveal">应用场景</h2>
+            <div class="table-container reveal" style="margin-top: 1.5rem;">
+                <table>
+                    <tr><th>场景</th><th>描述</th></tr>
+                    <tr><td>套利</td><td>利用不同交易所的价格差获利</td></tr>
+                    <tr><td>抵押品交换</td><td>将一种资产转换为另一种资产再还款</td></tr>
+                    <tr><td>再融资</td><td>在同一交易中偿还旧贷款并获取新贷款</td></tr>
+                    <tr><td>价格操纵</td><td>通过大额交易影响价格（常用于攻击）</td></tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 15: 为什么套利必须在回调中 -->
+    <section class="slide" id="slide15">
+        <div class="slide-content">
+            <h2 class="reveal">为什么套利必须在回调中完成？</h2>
+            <div class="box accent reveal" style="margin-top: 2rem;">
+                <p style="font-size: var(--h1-size); color: var(--text-primary); margin-bottom: 1.5rem;">
+                    因为只有在回调执行时：
+                </p>
+                <ul class="big-list">
+                    <li style="color: var(--accent);">钱已经到账 ✅</li>
+                    <li style="color: var(--accent);">交易还没结束 ✅</li>
+                    <li style="color: var(--accent);">可以自由操作 ✅</li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 16: 原子性 -->
+    <section class="slide" id="slide16">
+        <div class="slide-content">
+            <h2 class="reveal">原子性</h2>
+            <h3 class="reveal" style="color: var(--accent); margin-bottom: 2rem;">最关键机制</h3>
+            <div class="box accent reveal">
+                <p style="font-size: var(--h2-size); color: var(--text-primary);">
+                    借钱 + 使用 + 还钱 = <span style="color: var(--accent);">必须在同一笔交易中完成</span>
+                </p>
+            </div>
+            <div class="box danger reveal" style="margin-top: 1.5rem;">
+                <p style="font-size: var(--h3-size); color: var(--danger); margin-bottom: 1rem;">如果失败：</p>
+                <ul>
+                    <li>没还钱 ❌</li>
+                    <li>少还钱 ❌</li>
+                    <li>套利失败 ❌</li>
+                </ul>
+            </div>
+            <p class="reveal" style="font-size: var(--h2-size); color: var(--danger); margin-top: 1.5rem;">
+                💥 整个交易回滚（什么都没发生）
+            </p>
+        </div>
+    </section>
+
+    <!-- SLIDE 17: 核心合约代码 -->
+    <section class="slide" id="slide17">
+        <div class="slide-content">
+            <h2 class="reveal">核心合约代码</h2>
+            <p class="reveal" style="color: var(--text-secondary);">SimpleFlashLoan.sol</p>
+            <div class="code-container reveal" style="margin-top: 1rem;">
+                <pre><code><span class="keyword">contract</span> <span class="function">SimpleFlashLoan</span> {
+    <span class="keyword">using</span> SafeERC20 <span class="keyword">for</span> IERC20;
+
+    <span class="keyword">uint256</span> <span class="keyword">public constant</span> FLASH_LOAN_FEE_BPS = <span class="number">9</span>;  <span class="comment">// 0.09%</span>
+
+    <span class="keyword">function</span> <span class="function">flashLoan</span>(<span class="type">address</span> token, <span class="type">uint256</span> amount, <span class="type">bytes</span> calldata data) <span class="keyword">external</span> {
+        <span class="type">uint256</span> balanceBefore = tokenContract.balanceOf(<span class="keyword">address</span>(<span class="keyword">this</span>));
+        <span class="function">require</span>(balanceBefore >= amount, <span class="string">"Insufficient liquidity"</span>);
+
+        <span class="type">uint256</span> fee = (amount * FLASH_LOAN_FEE_BPS) / <span class="number">10000</span>;
+
+        <span class="comment">// 借出资金</span>
+        tokenContract.safeTransfer(msg.sender, amount);
+
+        <span class="comment">// 调用回调函数</span>
+        IFlashLoanReceiver(msg.sender).<span class="function">onFlashLoan</span>(token, amount, fee, data);
+
+        <span class="comment">// 验证还款</span>
+        <span class="type">uint256</span> balanceAfter = tokenContract.balanceOf(<span class="keyword">address</span>(<span class="keyword">this</span>));
+        <span class="function">require</span>(balanceAfter >= balanceBefore + fee, <span class="string">"Flash loan not repaid"</span>);
+    }
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 18: 关键步骤详解1-3 -->
+    <section class="slide" id="slide18">
+        <div class="slide-content">
+            <h2 class="reveal">关键步骤详解</h2>
+            <div class="box reveal" style="margin-top: 1rem;">
+                <p style="font-size: var(--h3-size); color: var(--accent); margin-bottom: 1rem;">步骤 1-3</p>
+                <ul style="text-align: left;">
+                    <li><span style="color: var(--accent);">步骤1：</span>记录初始余额 - 在借出前记录代币余额，验证还款的依据</li>
+                    <li><span style="color: var(--accent);">步骤2：</span>验证流动性 - 确保池子有足够资金，防止超额借出</li>
+                    <li><span style="color: var(--accent);">步骤3：</span>计算手续费 - 借款金额 × 费率（0.09%）</li>
+                </ul>
+            </div>
+            <div class="code-container reveal" style="margin-top: 1rem;">
+                <pre><code><span class="comment">// 手续费计算示例</span>
+<span class="type">uint256</span> fee = (amount * <span class="number">9</span>) / <span class="number">10000</span>;  <span class="comment">// 0.09%</span></code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 19: 关键步骤详解4-6 -->
+    <section class="slide" id="slide19">
+        <div class="slide-content">
+            <h2 class="reveal">关键步骤详解</h2>
+            <div class="box accent reveal" style="margin-top: 1rem;">
+                <p style="font-size: var(--h3-size); color: var(--accent); margin-bottom: 1rem;">步骤 4-6</p>
+                <ul style="text-align: left;">
+                    <li><span style="color: var(--accent);">步骤4：</span>转移资金 - 使用 SafeERC20 安全转账</li>
+                    <li><span style="color: var(--accent);">步骤5：</span>回调执行 - 调用借款人的 onFlashLoan 函数</li>
+                    <li><span style="color: var(--accent);">步骤6：</span>验证还款 - 检查余额是否 >= 初始余额 + 手续费</li>
+                </ul>
+            </div>
+            <div class="box danger reveal" style="margin-top: 1rem;">
+                <p style="font-size: var(--body-size); color: var(--danger);">
+                    <span style="font-weight: bold;">核心安全机制：</span>如果不足，整个交易回滚
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 20: 接收者合约示例 -->
+    <section class="slide" id="slide20">
+        <div class="slide-content">
+            <h2 class="reveal">接收者合约示例</h2>
+            <p class="reveal" style="color: var(--text-secondary);">实现 IFlashLoanReceiver 接口</p>
+            <div class="code-container reveal" style="margin-top: 1rem;">
+                <pre><code><span class="keyword">contract</span> <span class="function">FlashLoanReceiver</span> is IFlashLoanReceiver {
+    <span class="type">address</span> <span class="keyword">public</span> flashLoanPool;
+
+    <span class="keyword">function</span> <span class="function">onFlashLoan</span>(
+        <span class="type">address</span> token,
+        <span class="type">uint256</span> amount,
+        <span class="type">uint256</span> fee,
+        <span class="type">bytes</span> calldata data
+    ) <span class="keyword">external</span> <span class="keyword">override</span> {
+        <span class="comment">// 1. 此时已经收到了闪电贷资金（amount）</span>
+        <span class="comment">// 2. 可以在这里执行套利操作</span>
+        <span class="comment">// 3. 必须在函数结束前归还 amount + fee</span>
+
+        <span class="comment">// 执行套利...</span>
+
+        <span class="comment">// 归还资金</span>
+        IERC20(token).transfer(flashLoanPool, amount + fee);
+    }
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 21: 正面效果 -->
+    <section class="slide" id="slide21">
+        <div class="slide-content">
+            <h2 class="reveal">正面效果</h2>
+            <ul class="big-list" style="margin-top: 2rem;">
+                <li class="reveal"><span style="color: var(--accent);">无本套利</span> — 零资金成本进行套利操作，利润归借款人</li>
+                <li class="reveal"><span style="color: var(--accent);">资金效率</span> — 不需要锁定大量抵押资产</li>
+                <li class="reveal"><span style="color: var(--accent);">创新机会</span> — 催生了 DeFi 领域的各种创新应用</li>
+                <li class="reveal"><span style="color: var(--accent);">流动性</span> — 提高市场流动性，促进价格发现</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SLIDE 22: 负面影响 -->
+    <section class="slide" id="slide22">
+        <div class="slide-content">
+            <h2 class="reveal">负面影响（风险）</h2>
+            <ul class="big-list" style="margin-top: 2rem;">
+                <li class="reveal" style="color: var(--danger);"><span style="color: var(--danger);">闪电贷攻击</span> — 攻击者利用漏洞进行套利，导致协议损失</li>
+                <li class="reveal" style="color: var(--danger);"><span style="color: var(--danger);">价格操纵</span> — 大额交易人为改变价格</li>
+                <li class="reveal" style="color: var(--danger);"><span style="color: var(--danger);">智能合约漏洞</span> — 如果回调合约有漏洞，可能导致资金损失</li>
+                <li class="reveal" style="color: var(--danger);"><span style="color: var(--danger);">gas 限制</span> — 复杂操作可能超出区块 gas 限制</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SLIDE 23: 著名攻击案例 -->
+    <section class="slide" id="slide23">
+        <div class="slide-content">
+            <h2 class="reveal">著名攻击案例</h2>
+            <div class="compare" style="margin-top: 2rem;">
+                <div class="compare-item danger reveal">
+                    <h4>Cream Finance 攻击（2021年）</h4>
+                    <ul>
+                        <li>攻击者利用闪电贷操纵价格</li>
+                        <li>盗走约 <span style="color: var(--danger); font-weight: bold;">1.3亿美元</span> 资产</li>
+                    </ul>
+                </div>
+                <div class="compare-item danger reveal">
+                    <h4>PancakeBunny 攻击（2021年）</h4>
+                    <ul>
+                        <li>利用闪电贷操纵 LP 代币价格</li>
+                        <li>损失约 <span style="color: var(--danger); font-weight: bold;">4500万美元</span></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 24: 开发注意事项 -->
+    <section class="slide" id="slide24">
+        <div class="slide-content">
+            <h2 class="reveal">开发注意事项</h2>
+            <div class="code-container reveal" style="margin-top: 1.5rem;">
+                <pre><code><span class="comment">// 1. 使用 SafeERC20</span>
+tokenContract.safeTransfer(msg.sender, amount);
+
+<span class="comment">// 2. 验证还款</span>
+require(balanceAfter >= balanceBefore + fee, <span class="string">"Not repaid"</span>);
+
+<span class="comment">// 3. 手续费计算</span>
+uint256 fee = (amount * FLASH_LOAN_FEE_BPS) / <span class="number">10000</span>;
+
+<span class="comment">// 4. 重入保护</span>
+<span class="keyword">modifier</span> nonReentrant() {
+    require(!inFlashLoan, <span class="string">"Reentrancy"</span>);
+    inFlashLoan = <span class="keyword">true</span>;
+    _;
+    inFlashLoan = <span class="keyword">false</span>;
+}</code></pre>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 25: 安全建议 -->
+    <section class="slide" id="slide25">
+        <div class="slide-content">
+            <h2 class="reveal">安全建议</h2>
+            <div class="table-container reveal" style="margin-top: 1.5rem;">
+                <table>
+                    <tr><th>建议</th><th>说明</th></tr>
+                    <tr><td>谨慎回调</td><td>回调函数中只执行必要的操作，避免复杂逻辑</td></tr>
+                    <tr><td>限制额度</td><td>设置单次借款上限，防止大额攻击</td></tr>
+                    <tr><td>时间锁</td><td>考虑使用时间锁控制关键参数</td></tr>
+                    <tr><td>监控</td><td>实时监控异常大额交易</td></tr>
+                    <tr><td>审计</td><td>邀请专业团队审计合约</td></tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 26: 闪电贷协议选择 -->
+    <section class="slide" id="slide26">
+        <div class="slide-content">
+            <h2 class="reveal">闪电贷协议选择</h2>
+            <div class="table-container reveal" style="margin-top: 1.5rem;">
+                <table>
+                    <tr><th>协议</th><th>手续费</th><th>特点</th></tr>
+                    <tr><td>Aave</td><td>0.09%</td><td>最早提出，功能最完善</td></tr>
+                    <tr><td>dYdX</td><td>0</td><td>仅支持闪电贷，但需要多个步骤</td></tr>
+                    <tr><td>Uniswap</td><td>0.3%</td><td>通过 Flash Swap 支持</td></tr>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 27: 总结 - 核心要点 -->
+    <section class="slide" id="slide27">
+        <div class="slide-content">
+            <h2 class="reveal">总结</h2>
+            <h3 class="reveal" style="color: var(--accent); margin-bottom: 2rem;">核心要点</h3>
+            <ul class="big-list">
+                <li class="reveal"><span style="color: var(--accent);">闪电贷是什么？</span> — 无抵押、单笔交易完成、原子性的借贷机制</li>
+                <li class="reveal"><span style="color: var(--accent);">为什么存在？</span> — 提高资金效率，创造套利机会，推动 DeFi 创新</li>
+                <li class="reveal"><span style="color: var(--accent);">怎么做？</span> — 实现 IFlashLoanReceiver 接口，在回调中执行操作并归还资金</li>
+                <li class="reveal"><span style="color: var(--accent);">效果如何？</span> — 可用于套利、再融资等，也存在安全风险</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- SLIDE 28: 一句话总结 -->
+    <section class="slide" id="slide28">
+        <div class="slide-content">
+            <h2 class="reveal">一句话总结</h2>
+            <h3 class="reveal" style="color: var(--accent); margin-bottom: 2rem;">面试级</h3>
+            <div class="box accent reveal">
+                <p style="font-size: var(--h2-size); color: var(--text-primary); line-height: 1.5;">
+                    借款人调用 flashLoan 发起借款后，控制权进入池子合约，<br>
+                    池子在执行过程中回调借款人的 onFlashLoan，<br>
+                    借款人需要在该回调中完成操作并归还资金，<br>
+                    最终由池子验证还款，否则整个交易回滚。
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 29: 最终总结 -->
+    <section class="slide" id="slide29">
+        <div class="slide-content">
+            <h1 class="reveal">最终总结</h1>
+            <div class="box accent reveal" style="margin-top: 2rem;">
+                <p style="font-size: var(--h1-size); color: var(--accent); line-height: 1.3;">
+                    闪电贷不是"借钱"，而是：
+                </p>
+                <p style="font-size: var(--title-size); color: var(--text-primary); margin-top: 1.5rem;">
+                    在别人控制的执行流程里，<br>
+                    短暂使用资金完成你的逻辑
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- SLIDE 30: 结束 -->
+    <section class="slide" id="slide30">
+        <div class="slide-content">
+            <h1 class="reveal"><span class="highlight">谢谢观看</span></h1>
+            <p class="subtitle reveal">Day 18 - 闪电贷 Flash Loan</p>
+            <p class="reveal" style="margin-top: 2rem; color: var(--accent);">
+                回调机制强化理解版
+            </p>
+        </div>
+    </section>
+
+    <script>
+        // ===========================================
+        // SLIDE PRESENTATION CONTROLLER
+        // ===========================================
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.totalSlides = this.slides.length;
+                this.currentSlide = 0;
+                this.init();
+            }
+
+            init() {
+                this.createNavDots();
+                this.bindEvents();
+                this.updateProgress();
+                this.observeSlides();
+            }
+
+            createNavDots() {
+                const navDots = document.getElementById('navDots');
+                this.slides.forEach((_, index) => {
+                    const dot = document.createElement('div');
+                    dot.className = 'nav-dot';
+                    dot.addEventListener('click', () => this.goToSlide(index));
+                    navDots.appendChild(dot);
+                });
+                this.updateNavDots();
+            }
+
+            bindEvents() {
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault();
+                        this.nextSlide();
+                    } else if (e.key === 'ArrowLeft') {
+                        e.preventDefault();
+                        this.prevSlide();
+                    }
+                });
+
+                // Wheel navigation
+                let wheelTimeout;
+                document.addEventListener('wheel', (e) => {
+                    clearTimeout(wheelTimeout);
+                    wheelTimeout = setTimeout(() => {
+                        if (e.deltaY > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }, 50);
+                }, { passive: true });
+
+                // Touch navigation
+                let touchStartY = 0;
+                document.addEventListener('touchstart', (e) => {
+                    touchStartY = e.touches[0].clientY;
+                }, { passive: true });
+
+                document.addEventListener('touchend', (e) => {
+                    const touchEndY = e.changedTouches[0].clientY;
+                    const diff = touchStartY - touchEndY;
+                    if (Math.abs(diff) > 50) {
+                        if (diff > 0) {
+                            this.nextSlide();
+                        } else {
+                            this.prevSlide();
+                        }
+                    }
+                }, { passive: true });
+            }
+
+            goToSlide(index) {
+                if (index >= 0 && index < this.totalSlides) {
+                    this.slides[index].scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides - 1) {
+                    this.goToSlide(this.currentSlide + 1);
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 0) {
+                    this.goToSlide(this.currentSlide - 1);
+                }
+            }
+
+            updateProgress() {
+                const progress = ((this.currentSlide + 1) / this.totalSlides) * 100;
+                document.getElementById('progress').style.width = progress + '%';
+            }
+
+            updateNavDots() {
+                const dots = document.querySelectorAll('.nav-dot');
+                dots.forEach((dot, index) => {
+                    dot.classList.toggle('active', index === this.currentSlide);
+                });
+            }
+
+            observeSlides() {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const index = Array.from(this.slides).indexOf(entry.target);
+                            this.currentSlide = index;
+                            this.updateProgress();
+                            this.updateNavDots();
+                            entry.target.classList.add('visible');
+                        }
+                    });
+                }, { threshold: 0.5 });
+
+                this.slides.forEach(slide => observer.observe(slide));
+            }
+        }
+
+        // Initialize
+        new SlidePresentation();
+    </script>
+</body>
+</html>

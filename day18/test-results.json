@@ -1,0 +1,60 @@
+{
+  "timestamp": "2026-03-17T22:06:57.436Z",
+  "network": "hardhat",
+  "tests": [
+    {
+      "name": "部署 MockERC20",
+      "passed": true,
+      "error": null,
+      "timestamp": "2026-03-17T22:06:57.933Z"
+    },
+    {
+      "name": "部署 SimpleFlashLoan",
+      "passed": true,
+      "error": null,
+      "timestamp": "2026-03-17T22:06:57.941Z"
+    },
+    {
+      "name": "部署 FlashLoanReceiver",
+      "passed": true,
+      "error": null,
+      "timestamp": "2026-03-17T22:06:57.953Z"
+    },
+    {
+      "name": "向池子存入资金",
+      "passed": true,
+      "error": null,
+      "timestamp": "2026-03-17T22:06:57.959Z"
+    },
+    {
+      "name": "查询池子余额",
+      "passed": true,
+      "error": null,
+      "timestamp": "2026-03-17T22:06:57.963Z"
+    },
+    {
+      "name": "执行闪电贷",
+      "passed": true,
+      "error": null,
+      "timestamp": "2026-03-17T22:06:57.971Z"
+    },
+    {
+      "name": "验证资金不足",
+      "passed": true,
+      "error": null,
+      "timestamp": "2026-03-17T22:06:57.979Z"
+    },
+    {
+      "name": "手续费计算",
+      "passed": true,
+      "error": null,
+      "timestamp": "2026-03-17T22:06:57.981Z"
+    }
+  ],
+  "summary": {
+    "total": 8,
+    "passed": 8,
+    "failed": 0,
+    "errors": []
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "name": "solidity-day18-flash-loan",
+  "version": "1.0.0",
+  "description": "Day18 - 闪电贷原理与实现",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "test:ai": "node test/ai-automated-test.js",
+    "deploy": "hardhat run scripts/deploy.js --network localhost",
+    "verify": "hardhat run scripts/verify.js --network localhost",
+    "node": "hardhat node",
+    "clean": "hardhat clean"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "hardhat",
+    "web3",
+    "blockchain",
+    "flash-loan",
+    "defi"
+  ],
+  "author": "ethan",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "chai": "^4.3.10",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0"
+  }
+}
+
